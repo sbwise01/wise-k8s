@@ -3,3 +3,9 @@ kind: Kustomization
 
 resources:
   - ../base/v1.14.1
+
+patches:
+  - target:
+      kind: Service
+      name: ingress-nginx-controller
+    path: patches/controller-lb.yaml

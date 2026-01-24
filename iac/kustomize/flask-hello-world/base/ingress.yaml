@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-flask-hello-world
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: flask-hello-world
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: flask-hello-world
+            port:
+              number: 5000
