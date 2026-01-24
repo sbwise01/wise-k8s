@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-hello-world
+  labels:
+    app: flask-hello-world
+    service: flask-hello-world
+spec:
+  ports:
+  - port: 5000
+    name: http
+  selector:
+    app: flask-hello-world
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-hello-world
+  labels:
+    app: flask-hello-world
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-hello-world
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: flask-hello-world
+        version: v1
+    spec:
+      serviceAccountName: flask-hello-world
+      containers:
+      - name: flask-hello-world
+        env:
+        - name: APP_NAME
+          value: flask-hello-world
+        image: sbwise/flaskhelloworld:0.2.4
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5000
+        resources:
+          limits:
+            cpu: 50m
+            memory: 86Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
