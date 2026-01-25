@@ -1,0 +1,13 @@
+- op: add
+  path: /spec/template/spec/containers/0/envFrom
+  value:
+    - secretRef:
+        name: external-dns-aws
+
+- op: add
+  path: /spec/template/spec/containers/0/env
+  value:
+    - name: AWS_REGION
+      value: us-west-2
+    - name: AWS_DEFAULT_REGION
+      value: us-west-2

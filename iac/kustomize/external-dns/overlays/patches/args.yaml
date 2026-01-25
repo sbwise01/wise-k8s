@@ -1,0 +1,15 @@
+- op: add
+  path: /spec/template/spec/containers/0/args/-
+  value: '--policy=sync'
+
+- op: add
+  path: /spec/template/spec/containers/0/args/-
+  value: '--provider=aws'
+
+- op: add
+  path: /spec/template/spec/containers/0/args/-
+  value: '--domain-filter=home.bradandmarsha.com'
+
+- op: add
+  path: /spec/template/spec/containers/0/args/-
+  value: '--txt-owner-id=us-west-2:home.bradandmarsha.com'
