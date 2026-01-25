@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../base/v1.17.2
+
+patches:
+  - target:
+      kind: Deployment
+    path: patches/aws-creds.yaml

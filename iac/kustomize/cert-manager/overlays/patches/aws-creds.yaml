@@ -1,0 +1,17 @@
+- op: add
+  path: /spec/template/spec/containers/0/envFrom
+  value:
+    - secretRef:
+        name: cert-manager-aws
+
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: AWS_REGION
+    value: us-west-2
+
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: AWS_DEFAULT_REGION
+    value: us-west-2
