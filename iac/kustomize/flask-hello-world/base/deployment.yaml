@@ -33,18 +33,26 @@ spec:
     spec:
       serviceAccountName: flask-hello-world
       containers:
-      - name: flask-hello-world
-        env:
-        - name: APP_NAME
-          value: flask-hello-world
-        image: sbwise/flaskhelloworld:0.2.4
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 5000
-        resources:
-          limits:
-            cpu: 50m
-            memory: 86Mi
-          requests:
-            cpu: 10m
-            memory: 64Mi
+        - name: flask-hello-world
+          env:
+          - name: APP_NAME
+            value: flask-hello-world
+          image: sbwise/flaskhelloworld:0.2.4
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 5000
+          resources:
+            limits:
+              cpu: 50m
+              memory: 86Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
+          volumeMounts:
+            - name: mypvc
+              mountPath: /data
+      volumes:
+        - name: mypvc
+          persistentVolumeClaim:
+            claimName: flask-hello-world-pvc
+            readOnly: false

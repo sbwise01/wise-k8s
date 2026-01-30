@@ -3,10 +3,18 @@ kind: Kustomization
 
 resources:
   - ../base/v1.19.0
+  - csi-config-map.yaml
+  - csi-kms-config-map.yaml
+  - ceph-config-map.yaml
+  - csi-nodeplugin-rbac.yaml
+  - csi-provisioner-rbac.yaml
+  - csi-rbdplugin-provisioner.yaml
+  - csi-rbdplugin.yaml
+  - csi-rbd-sc.yaml
 
-patches:
-  # This patch exists because wise-k8s only has 2 nodes instead of 3, and is temporary
-  #  remove this patch once a third node is added to the cluster:wq
-  - target:
-      kind: CephCluster
-    path: patches/two-node-cluster.yaml
+#patches:
+#  # This patch exists because wise-k8s only has 2 nodes instead of 3, and is temporary
+#  #  remove this patch once a third node is added to the cluster:wq
+#  - target:
+#      kind: CephCluster
+#    path: patches/two-node-cluster.yaml
