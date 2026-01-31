@@ -10,4 +10,4 @@ data:
   keyring: |
 metadata:
   name: ceph-config
-  namespace: default
+  namespace: rook-ceph

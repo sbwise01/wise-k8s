@@ -3,8 +3,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: csi-rbdplugin-provisioner
-  # replace with non-default namespace name
-  namespace: default
+  namespace: rook-ceph
   labels:
     app: csi-metrics
 spec:
@@ -21,8 +20,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: csi-rbdplugin-provisioner
-  # replace with non-default namespace name
-  namespace: default
+  namespace: rook-ceph
 spec:
   replicas: 3
   selector:
@@ -43,7 +41,7 @@ spec:
                     values:
                       - csi-rbdplugin-provisioner
               topologyKey: "kubernetes.io/hostname"
-      serviceAccountName: rbd-csi-provisioner
+      serviceAccountName: rook-csi-rbd-provisioner-sa
       priorityClassName: system-cluster-critical
       containers:
         - name: csi-rbdplugin
