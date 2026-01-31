@@ -3,6 +3,8 @@ kind: Kustomization
 
 resources:
   - ../base/v1.19.0
+  - certificate.yaml
+  - cert-issuer.yaml
   - csi-kms-config-map.yaml
   - ceph-config-map.yaml
   - csi-rbdplugin-provisioner.yaml
