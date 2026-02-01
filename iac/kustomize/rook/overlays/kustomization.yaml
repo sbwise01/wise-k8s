@@ -10,6 +10,7 @@ resources:
   - csi-rbdplugin-provisioner.yaml
   - csi-rbdplugin.yaml
   - csi-rbd-sc.yaml
+  - ingress.yaml
 
 patches:
   - path: patches/csi-nodeplugin-rbac.yaml

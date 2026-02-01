@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rook-ceph-mgr-dashboard-ingress
+  namespace: rook-ceph
+  annotations:
+    # Required for NGINX to communicate with the HTTPS backend service
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    # Optional: May be needed if the Ceph dashboard uses a self-signed certificate (common in default deployments)
+    nginx.ingress.kubernetes.io/proxy-ssl-verify: "off"
+    # Optional: Useful if you need to strip a path prefix
+    # nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - ceph-dashboard
+    secretName: ceph-dashboard-selfsigned-cert
+  rules:
+  - host: ceph-dashboard
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rook-ceph-mgr-dashboard
+            port:
+              number: 8443
