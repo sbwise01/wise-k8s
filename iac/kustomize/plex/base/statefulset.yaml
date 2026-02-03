@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: plex-media-server
+    app.kubernetes.io/instance: plex
+    app.kubernetes.io/name: plex-media-server
+    app.kubernetes.io/version: 1.42.2
+    name: plex-plex-media-server
+  name: plex-plex-media-server
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: plex
+      app.kubernetes.io/name: plex-media-server
+  serviceName: plex-plex-media-server
+  template:
+    metadata:
+      annotations: {}
+      labels:
+        app: plex-media-server
+        app.kubernetes.io/instance: plex
+        app.kubernetes.io/name: plex-media-server
+        app.kubernetes.io/version: 1.42.2
+    spec:
+      affinity: {}
+      containers:
+        - name: plex-plex-media-server-pms
+          env:
+            - name: TZ
+              value: "America/Chicago"
+          envFrom:
+            - secretRef:
+                name: plex-claim
+          image: index.docker.io/plexinc/pms-docker:1.42.2.10156-f737b826c
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 32400
+              name: pms
+          volumeMounts:
+            - mountPath: /config
+              name: plex-config
+            - mountPath: /transcode
+              name: plex-transcode
+            # - mountPath: /plexmedia
+            #   name: plex-media
+      initContainers: null
+      nodeSelector: {}
+      serviceAccountName: plex-plex-media-server
+      terminationGracePeriodSeconds: 120
+      tolerations: []
+      volumes:
+        - name: plex-config
+          persistentVolumeClaim:
+            claimName: plex-config-pvc
+            readOnly: false
+        # - name: plex-media
+        #   persistentVolumeClaim:
+        #     claimName: plex-media-pvc
+        #     readOnly: false
+        - name: plex-transcode
+          persistentVolumeClaim:
+            claimName: plex-transcode-pvc
+            readOnly: false

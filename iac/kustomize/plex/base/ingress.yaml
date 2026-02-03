@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app: plex-media-server
+    app.kubernetes.io/instance: plex
+    app.kubernetes.io/name: plex-media-server
+    app.kubernetes.io/version: 1.42.2
+    name: plex-plex-media-server-ingress
+  name: plex-plex-media-server-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: wise-plex-k8s
+    http:
+      paths:
+      - backend:
+          service:
+            name: plex-plex-media-server
+            port:
+              number: 32400
+        path: /
+        pathType: Prefix
