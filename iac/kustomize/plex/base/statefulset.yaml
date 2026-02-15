@@ -42,8 +42,8 @@ spec:
               name: plex-config
             - mountPath: /transcode
               name: plex-transcode
-            # - mountPath: /plexmedia
-            #   name: plex-media
+            - mountPath: /plexmedia
+              name: plex-media
       initContainers: null
       nodeSelector: {}
       serviceAccountName: plex-plex-media-server
@@ -54,10 +54,10 @@ spec:
           persistentVolumeClaim:
             claimName: plex-config-pvc
             readOnly: false
-        # - name: plex-media
-        #   persistentVolumeClaim:
-        #     claimName: plex-media-pvc
-        #     readOnly: false
+        - name: plex-media
+          persistentVolumeClaim:
+            claimName: plex-media-pvc
+            readOnly: false
         - name: plex-transcode
           persistentVolumeClaim:
             claimName: plex-transcode-pvc

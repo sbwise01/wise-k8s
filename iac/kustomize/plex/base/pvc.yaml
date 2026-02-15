@@ -25,15 +25,15 @@ spec:
       storage: 32Gi
   storageClassName: csi-rbd-sc
 ---
-# apiVersion: v1
-# kind: PersistentVolumeClaim
-# metadata:
-#   name: plex-media-pvc
-# spec:
-#   accessModes:
-#     - ReadWriteOnce
-#   volumeMode: Filesystem
-#   resources:
-#     requests:
-#       storage: 9Ti
-#   storageClassName: csi-rbd-sc
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: plex-media-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 9Ti
+  storageClassName: csi-rbd-sc
