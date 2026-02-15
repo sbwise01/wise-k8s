@@ -44,6 +44,8 @@ spec:
               name: plex-transcode
             - mountPath: /plexmedia
               name: plex-media
+            - mountPath: /plexpi
+              name: plexpi
       initContainers: null
       nodeSelector: {}
       serviceAccountName: plex-plex-media-server
@@ -62,3 +64,7 @@ spec:
           persistentVolumeClaim:
             claimName: plex-transcode-pvc
             readOnly: false
+        - name: plexpi
+          nfs:
+            server: 192.168.40.101
+            path: /media/data
