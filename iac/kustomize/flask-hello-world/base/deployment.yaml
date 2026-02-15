@@ -51,20 +51,8 @@ spec:
           volumeMounts:
             - name: mypvc
               mountPath: /data
-            - name: plexpvc
-              mountPath: /plexmedia
-            - name: plex
-              mountPath: /plex
       volumes:
         - name: mypvc
           persistentVolumeClaim:
             claimName: flask-hello-world-pvc
             readOnly: false
-        - name: plexpvc
-          persistentVolumeClaim:
-            claimName: plex-media-pvc
-            readOnly: false
-        - name: plex
-          nfs:
-            server: 192.168.40.101
-            path: /media/data
