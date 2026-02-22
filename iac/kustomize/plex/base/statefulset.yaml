@@ -32,7 +32,7 @@ spec:
           envFrom:
             - secretRef:
                 name: plex-claim
-          image: index.docker.io/plexinc/pms-docker:1.42.2.10156-f737b826c
+          image: index.docker.io/plexinc/pms-docker:1.43.0.10492-121068a07
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 32400
@@ -44,8 +44,6 @@ spec:
               name: plex-transcode
             - mountPath: /plexmedia
               name: plex-media
-            - mountPath: /plexpi
-              name: plexpi
       initContainers: null
       nodeSelector: {}
       serviceAccountName: plex-plex-media-server
@@ -64,7 +62,3 @@ spec:
           persistentVolumeClaim:
             claimName: plex-transcode-pvc
             readOnly: false
-        - name: plexpi
-          nfs:
-            server: 192.168.40.101
-            path: /media/data
