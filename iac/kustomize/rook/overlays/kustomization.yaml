@@ -11,6 +11,7 @@ resources:
   - csi-rbdplugin.yaml
   - csi-rbd-sc.yaml
   - ingress.yaml
+  - toolbox.yaml
 
 patches:
   - path: patches/csi-nodeplugin-rbac.yaml

@@ -3,6 +3,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: csi-rbdplugin-provisioner
+  # replace with non-default namespace name
   namespace: rook-ceph
   labels:
     app: csi-metrics
@@ -20,6 +21,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: csi-rbdplugin-provisioner
+  # replace with non-default namespace name
   namespace: rook-ceph
 spec:
   replicas: 3
@@ -41,7 +43,7 @@ spec:
                     values:
                       - csi-rbdplugin-provisioner
               topologyKey: "kubernetes.io/hostname"
-      serviceAccountName: rook-csi-rbd-provisioner-sa
+      serviceAccountName: rbd-csi-provisioner
       priorityClassName: system-cluster-critical
       containers:
         - name: csi-rbdplugin
@@ -103,14 +105,13 @@ spec:
               mountPath: /run/secrets/tokens
               readOnly: true
         - name: csi-provisioner
-          image: registry.k8s.io/sig-storage/csi-provisioner:v6.0.0
+          image: registry.k8s.io/sig-storage/csi-provisioner:v6.2.0
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=1"
             - "--timeout=150s"
             - "--retry-interval-start=500ms"
             - "--leader-election=true"
-            - "--feature-gates=HonorPVReclaimPolicy=true"
             - "--prevent-volume-mode-conversion=true"
             # if fstype is not specified in storageclass, ext4 is default
             - "--default-fstype=ext4"
@@ -133,7 +134,7 @@ spec:
             - name: socket-dir
               mountPath: /csi
         - name: csi-snapshotter
-          image: registry.k8s.io/sig-storage/csi-snapshotter:v8.4.0
+          image: registry.k8s.io/sig-storage/csi-snapshotter:v8.5.0
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=1"
@@ -158,7 +159,7 @@ spec:
             - name: socket-dir
               mountPath: /csi
         - name: csi-attacher
-          image: registry.k8s.io/sig-storage/csi-attacher:v4.10.0
+          image: registry.k8s.io/sig-storage/csi-attacher:v4.11.0
           args:
             - "--v=1"
             - "--csi-address=$(ADDRESS)"
@@ -182,7 +183,7 @@ spec:
             - name: socket-dir
               mountPath: /csi
         - name: csi-resizer
-          image: registry.k8s.io/sig-storage/csi-resizer:v2.0.0
+          image: registry.k8s.io/sig-storage/csi-resizer:v2.1.0
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=1"

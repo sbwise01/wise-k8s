@@ -3,6 +3,7 @@ kind: DaemonSet
 apiVersion: apps/v1
 metadata:
   name: csi-rbdplugin
+  # replace with non-default namespace name
   namespace: rook-ceph
 spec:
   selector:
@@ -13,7 +14,7 @@ spec:
       labels:
         app: csi-rbdplugin
     spec:
-      serviceAccountName: rook-csi-rbd-plugin-sa
+      serviceAccountName: rbd-csi-nodeplugin
       hostNetwork: true
       hostPID: true
       priorityClassName: system-node-critical
@@ -116,7 +117,7 @@ spec:
           securityContext:
             privileged: true
             allowPrivilegeEscalation: true
-          image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.15.0
+          image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
           args:
             - "--v=1"
             - "--csi-address=/csi/csi.sock"
@@ -216,6 +217,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: csi-metrics-rbdplugin
+  # replace with non-default namespace name
   namespace: rook-ceph
   labels:
     app: csi-metrics
