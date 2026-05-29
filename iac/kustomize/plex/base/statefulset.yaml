@@ -32,7 +32,7 @@ spec:
           envFrom:
             - secretRef:
                 name: plex-claim
-          image: sbwise/pms-docker:1.43.0.10492-121068a07
+          image: sbwise/pms-docker:1.43.2.10687-563d026ea
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 32400
