@@ -37,7 +37,7 @@ spec:
           env:
           - name: APP_NAME
             value: wise-home-index
-          image: sbwise/wise-home-index:1.0.0
+          image: sbwise/wise-home-index:1.1.1
           imagePullPolicy: IfNotPresent
           ports:
           - containerPort: 8080
