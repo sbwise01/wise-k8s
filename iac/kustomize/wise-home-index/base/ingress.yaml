@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-wise-home-index
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: home.bradandmarsha.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: wise-home-index
+            port:
+              number: 8080

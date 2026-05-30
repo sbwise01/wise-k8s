@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: wise-home-index
+  labels:
+    app: wise-home-index
+    service: wise-home-index
+spec:
+  ports:
+  - port: 8080
+    name: http
+  selector:
+    app: wise-home-index
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wise-home-index
+  labels:
+    app: wise-home-index
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wise-home-index
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: wise-home-index
+        version: v1
+    spec:
+      serviceAccountName: wise-home-index
+      containers:
+        - name: wise-home-index
+          env:
+          - name: APP_NAME
+            value: wise-home-index
+          image: sbwise/wise-home-index:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 8080
+          resources:
+            limits:
+              cpu: 100m
+              memory: 2Gi
+            requests:
+              cpu: 10m
+              memory: 1Gi
+          volumeMounts: []
+      volumes: []

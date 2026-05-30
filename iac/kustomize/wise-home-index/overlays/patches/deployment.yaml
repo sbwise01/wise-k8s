@@ -1,0 +1,19 @@
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: WISE_HOME_INDEX_PRIVATE_CIDR
+    value: "192.168.40.0/24"
+
+- op: add
+  path: /spec/template/spec/volumes/-
+  value:
+    name: app-config-volume
+    configMap:
+      name: app-config
+
+- op: add
+  path: /spec/template/spec/containers/0/volumeMounts/-
+  value:
+    name: app-config-volume
+    mountPath: /config/applications.yaml
+    subPath: applications.yaml
