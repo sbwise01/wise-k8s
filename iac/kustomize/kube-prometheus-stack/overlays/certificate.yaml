@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: certificate-grafana-dashboard
+spec:
+  secretName: certificate-grafana-dashboard
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  commonName: "grafana-dashboard"
+  dnsNames:
+  - "grafana-dashboard"
+  issuerRef:
+    name: selfsigned-issuer-grafana-dashboard
+    kind: Issuer
+    group:

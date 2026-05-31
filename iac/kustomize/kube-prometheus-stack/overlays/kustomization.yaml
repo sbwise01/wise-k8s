@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - ../base/0.91.0
+  - cert-issuer.yaml
+  - certificate.yaml
+
+patches:
+  - target:
+      kind: Ingress
+      name: prometheus-stack-grafana
+    path: patches/ingress.yaml

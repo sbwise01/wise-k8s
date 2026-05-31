@@ -1,0 +1,10 @@
+- op: add
+  path: /spec/ingressClassName
+  value: nginx
+
+- op: add
+  path: /spec/tls
+  value:
+    - hosts:
+      - grafana-dashboard
+      secretName: certificate-grafana-dashboard
