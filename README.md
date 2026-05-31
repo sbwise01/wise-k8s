@@ -13,3 +13,4 @@ Repository to house manifests and applications hosted in the wise-k8s homelab
 7. Convert IAM to role projection
 8. App to quickly lookup plex movies remotely, native web app is too slow and clunky
 9. Replace Ingress' with Gateway API
+10. Replace hand spun postgres with cloudnative pg
