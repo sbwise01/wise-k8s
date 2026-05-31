@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: certificate-plex-media-server
+spec:
+  secretName: certificate-plex-media-server
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  commonName: "wise-plex-k8s"
+  dnsNames:
+  - "wise-plex-k8s"
+  issuerRef:
+    name: selfsigned-issuer-plex-media-server
+    kind: Issuer
+    group:

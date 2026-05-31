@@ -1,9 +1,9 @@
 applications:
   - name: Flask Hello World
-    url: http://flask-hello-world.home.bradandmarsha.com/
+    url: https://flask-hello-world.home.bradandmarsha.com/
 
   - name: Ceph Dashboard
-    url: http://ceph-dashboard
-  
+    url: https://ceph-dashboard/
+
   - name: Wise k8s Plex
-    url: http://wise-plex-k8s
+    url: https://wise-plex-k8s/

@@ -4,6 +4,8 @@ kind: Kustomization
 namespace: default
 
 resources:
+  - cert-issuer.yaml
+  - certificate.yaml
   - ingress.yaml
   - pvc.yaml
   - rbac.yaml

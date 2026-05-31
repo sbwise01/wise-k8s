@@ -4,14 +4,18 @@ metadata:
   name: ingress-flask-hello-world
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+      - flask-hello-world.home.bradandmarsha.com
+      secretName: certificate-flask-hello-world
   rules:
-  - host: flask-hello-world.home.bradandmarsha.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: flask-hello-world
-            port:
-              number: 5000
+    - host: flask-hello-world.home.bradandmarsha.com
+      http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: flask-hello-world
+              port:
+                number: 5000
