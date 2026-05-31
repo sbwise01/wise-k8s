@@ -1,9 +1,12 @@
 applications:
   - name: Flask Hello World
     url: https://flask-hello-world.home.bradandmarsha.com/
+    image: https://media.home.bradandmarsha.com/media/flaskred.png
 
   - name: Ceph Dashboard
     url: https://ceph-dashboard/
+    image: https://media.home.bradandmarsha.com/media/ceph.svg
 
   - name: Wise k8s Plex
     url: https://wise-plex-k8s/
+    image: https://media.home.bradandmarsha.com/media/plex-icon-filled-256.png
