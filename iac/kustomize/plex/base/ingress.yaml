@@ -6,16 +6,16 @@ metadata:
     app.kubernetes.io/instance: plex
     app.kubernetes.io/name: plex-media-server
     app.kubernetes.io/version: 1.42.2
-    name: plex-plex-media-server-ingress
-  name: plex-plex-media-server-ingress
+    name: plex-media-server-ingress
+  name: plex-media-server-ingress
 spec:
   ingressClassName: nginx
   tls:
     - hosts:
-      - wise-plex-k8s
-      secretName: certificate-plex-media-server
+      - plex.home.bradandmarsha.com
+      secretName: plex-certificate
   rules:
-    - host: wise-plex-k8s
+    - host: plex.home.bradandmarsha.com
       http:
         paths:
         - backend:
