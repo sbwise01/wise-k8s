@@ -7,7 +7,7 @@ Repository to house manifests and applications hosted in the wise-k8s homelab
 1. Hook monitoring into ceph-dashboard
 1. Either ArgoCD or FluxCD setup
 1. Enhance index page to auto discover public and private sites
-1. external dns for my registrar
+1. external dns for my registrar or ddns for route53
 1. Assuming above, perhaps fold home subdomain into TLD
 1. Convert IAM to role projection
 1. App to quickly lookup plex movies remotely, native web app is too slow and clunky
