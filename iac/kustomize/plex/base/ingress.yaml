@@ -1,6 +1,9 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: plex.home.bradandmarsha.com
+    external-dns.alpha.kubernetes.io/target: home.bradandmarsha.com
   labels:
     app: plex-media-server
     app.kubernetes.io/instance: plex

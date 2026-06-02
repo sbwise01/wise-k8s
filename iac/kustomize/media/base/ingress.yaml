@@ -1,6 +1,9 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: media.home.bradandmarsha.com
+    external-dns.alpha.kubernetes.io/target: home.bradandmarsha.com
   name: ingress-media
 spec:
   ingressClassName: nginx

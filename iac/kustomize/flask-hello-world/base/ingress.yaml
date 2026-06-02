@@ -1,6 +1,9 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: flask-hello-world.home.bradandmarsha.com
+    external-dns.alpha.kubernetes.io/target: home.bradandmarsha.com
   name: ingress-flask-hello-world
 spec:
   ingressClassName: nginx
