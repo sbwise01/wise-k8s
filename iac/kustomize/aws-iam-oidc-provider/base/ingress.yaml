@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: oidc.home.bradandmarsha.com
+    external-dns.alpha.kubernetes.io/target: home.bradandmarsha.com
+  name: ingress-aws-iam-oidc
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+      - oidc.home.bradandmarsha.com
+      secretName: certificate-aws-iam-oidc
+  rules:
+    - host: oidc.home.bradandmarsha.com
+      http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: aws-iam-oidc
+              port:
+                number: 80
