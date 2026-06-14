@@ -9,3 +9,8 @@ resources:
   - ingress.yaml
   - rbac.yaml
   - pvc.yaml
+
+configMapGenerator:
+  - name: nginx-default-conf
+    files:
+      - files/default.conf
