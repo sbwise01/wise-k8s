@@ -41,9 +41,10 @@ data "aws_iam_policy_document" "route53_ddns" {
 }
 
 resource "aws_iam_role" "route53_ddns" {
-  name               = "route53-ddns"
-  description        = "IRSA role for Route53 DDNS"
-  assume_role_policy = data.aws_iam_policy_document.route53_ddns_trust_policy.json
+  name                 = "route53-ddns"
+  description          = "IRSA role for Route53 DDNS"
+  assume_role_policy   = data.aws_iam_policy_document.route53_ddns_trust_policy.json
+  max_session_duration = 43200
 }
 
 resource "aws_iam_role_policy" "route53_ddns" {

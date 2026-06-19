@@ -39,5 +39,7 @@ spec:
           value: 'home.bradandmarsha.com'
         - name: R53_HOSTED_ZONE_ID
           value: 'Z05560511DSPWIB0LNUUD'
+        - name: R53_TTL
+          value: '3600'
         - name: AWS_REGION
           value: 'us-east-2'
