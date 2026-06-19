@@ -25,6 +25,9 @@ jobs:
     runs-on: ubuntu-latest
     # Only run for PRs from branches in this repo, not forks (forks can't assume the AWS role anyway).
     if: github.event.pull_request.head.repo.full_name == github.repository
+    defaults:
+      run:
+        working-directory: iac/terraform
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -99,7 +102,7 @@ jobs:
           header: terraform-plan
           hide_and_recreate: true
           hide_classify: OUTDATED
-          path: comment.md
+          path: iac/terraform/comment.md
 
       - name: Fetch Infracost API key from SSM
         if: steps.plan.outcome == 'success'
@@ -128,7 +131,7 @@ jobs:
       - name: Infracost baseline (current monthly cost on base branch)
         if: steps.plan.outcome == 'success'
         run: |
-          infracost breakdown --path infracost-base \
+          infracost breakdown --path "$GITHUB_WORKSPACE/infracost-base/iac/terraform" \
             --format json \
             --out-file /tmp/infracost-base.json
 
