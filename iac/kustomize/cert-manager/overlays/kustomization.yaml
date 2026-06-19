@@ -6,5 +6,5 @@ resources:
 
 patches:
   - target:
-      kind: Deployment
-    path: patches/aws-creds.yaml
+      kind: ServiceAccount
+    path: patches/aws-role.yaml
