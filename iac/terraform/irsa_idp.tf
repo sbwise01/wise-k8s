@@ -1,9 +1,5 @@
 resource "aws_iam_openid_connect_provider" "homelab" {
-  url            = "https://oidc.home.bradandmarsha.com"
-  client_id_list = ["sts.amazonaws.com"]
-  thumbprint_list = [
-    "16d069c1cd53a768255ad426bf8025aaff672332",
-    "cbcfd09ce3cd22d99d94e58f92e9898fbee51a5e",
-    "ab9d0263244dd0326eb67015705a667e79cfe998"
-  ]
+  url             = "https://${local.oidc.subdomain}.${local.route53.parent_zone}"
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = local.oidc.thumbprint_list
 }

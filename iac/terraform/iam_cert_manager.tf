@@ -4,16 +4,16 @@ data "aws_iam_policy_document" "cert_manager_trust_policy" {
     actions = ["sts:AssumeRoleWithWebIdentity"]
     principals {
       type        = "Federated"
-      identifiers = ["arn:aws:iam::712671171381:oidc-provider/oidc.home.bradandmarsha.com"]
+      identifiers = [aws_iam_openid_connect_provider.homelab.arn]
     }
     condition {
       test     = "StringEquals"
-      variable = "oidc.home.bradandmarsha.com:aud"
+      variable = "${local.oidc.subdomain}.${local.route53.parent_zone}:aud"
       values   = ["sts.amazonaws.com"]
     }
     condition {
       test     = "StringEquals"
-      variable = "oidc.home.bradandmarsha.com:sub"
+      variable = "${local.oidc.subdomain}.${local.route53.parent_zone}:sub"
       values = [
         "system:serviceaccount:cert-manager:cert-manager",
         "system:serviceaccount:cert-manager:cert-manager-cainjector",

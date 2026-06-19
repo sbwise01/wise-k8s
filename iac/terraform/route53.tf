@@ -1,4 +1,4 @@
 resource "aws_route53_zone" "homelab_zone" {
-  name              = "home.bradandmarsha.com"
-  delegation_set_id = "N01520513SWFAR055EX7G"
+  name              = local.route53.parent_zone
+  delegation_set_id = local.route53.delegation_set_id
 }
