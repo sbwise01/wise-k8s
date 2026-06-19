@@ -23,6 +23,9 @@ jobs:
   apply:
     name: Apply
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: iac/terraform
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -128,7 +131,7 @@ jobs:
         with:
           header: terraform-apply
           number: ${{ steps.pr.outputs.number }}
-          path: comment.md
+          path: iac/terraform/comment.md
 
       - name: Fail if plan failed
         if: steps.plan.outcome == 'failure'

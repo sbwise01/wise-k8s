@@ -10,7 +10,7 @@ terraform {
 
   backend "s3" {
     bucket = "brad-tf-state"
-    key    = "wise-k8s"
+    key    = "wise-k8s/terraform.tfstate"
     region = "us-east-2"
   }
 }
