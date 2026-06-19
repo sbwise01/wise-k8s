@@ -42,9 +42,10 @@ data "aws_iam_policy_document" "external_dns" {
 }
 
 resource "aws_iam_role" "external_dns" {
-  name               = "external-dns"
-  description        = "IRSA role for External DNS"
-  assume_role_policy = data.aws_iam_policy_document.external_dns_trust_policy.json
+  name                 = "external-dns"
+  description          = "IRSA role for External DNS"
+  assume_role_policy   = data.aws_iam_policy_document.external_dns_trust_policy.json
+  max_session_duration = 43200
 }
 
 resource "aws_iam_role_policy" "external_dns" {

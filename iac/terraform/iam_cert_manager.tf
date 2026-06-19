@@ -59,9 +59,10 @@ data "aws_iam_policy_document" "cert_manager" {
 }
 
 resource "aws_iam_role" "cert_manager" {
-  name               = "cert-manager"
-  description        = "IRSA role for Certificate Manager"
-  assume_role_policy = data.aws_iam_policy_document.cert_manager_trust_policy.json
+  name                 = "cert-manager"
+  description          = "IRSA role for Certificate Manager"
+  assume_role_policy   = data.aws_iam_policy_document.cert_manager_trust_policy.json
+  max_session_duration = 43200
 }
 
 resource "aws_iam_role_policy" "cert_manager" {
