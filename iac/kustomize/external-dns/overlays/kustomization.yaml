@@ -10,7 +10,10 @@ resources:
 patches:
   - target:
       kind: Deployment
-    path: patches/aws-creds.yaml
+    path: patches/aws-region.yaml
   - target:
       kind: Deployment
     path: patches/args.yaml
+  - target:
+      kind: ServiceAccount
+    path: patches/aws-role.yaml
