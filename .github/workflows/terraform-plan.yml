@@ -1,0 +1,154 @@
+name: Terraform Plan
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "iac/terraform/*.tf"
+
+permissions:
+  id-token: write # required for AWS OIDC
+  contents: read
+  pull-requests: write # required to comment on the PR
+
+env:
+  AWS_REGION: us-east-2
+  TF_ROLE_ARN: arn:aws:iam::712671171381:role/terraform-role
+
+concurrency:
+  group: terraform-plan-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    # Only run for PRs from branches in this repo, not forks (forks can't assume the AWS role anyway).
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.TF_ROLE_ARN }}
+          role-session-name: gha-terraform-plan-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform Format
+        id: fmt
+        run: terraform fmt -check -recursive
+        continue-on-error: true
+
+      - name: Terraform Init
+        id: init
+        run: terraform init -input=false
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -input=false -no-color -out=tfplan 2>&1 | tee plan.txt
+        continue-on-error: true
+
+      - name: Terraform plan JSON
+        if: steps.plan.outcome == 'success'
+        run: terraform show -json tfplan > plan.json
+
+      - name: Build PR comment
+        if: always()
+        run: |
+          {
+            echo "## Terraform Plan"
+            echo ""
+            echo "| Step | Result |"
+            echo "| --- | --- |"
+            echo "| Format | \`${{ steps.fmt.outcome }}\` |"
+            echo "| Init | \`${{ steps.init.outcome }}\` |"
+            echo "| Validate | \`${{ steps.validate.outcome }}\` |"
+            echo "| Plan | \`${{ steps.plan.outcome }}\` |"
+            echo ""
+            echo "<details><summary>Show Plan</summary>"
+            echo ""
+            echo '```terraform'
+            # GitHub comments cap at 65536 chars; keep headroom for the wrapper.
+            head -c 60000 plan.txt
+            if [ "$(wc -c < plan.txt)" -gt 60000 ]; then
+              echo ""
+              echo "... output truncated, see the workflow logs for the full plan ..."
+            fi
+            echo '```'
+            echo ""
+            echo "</details>"
+            echo ""
+            echo "_Pusher: @${{ github.actor }} · Commit: \`${{ github.event.pull_request.head.sha }}\`_"
+          } > comment.md
+
+      - name: Post plan comment
+        if: always()
+        uses: marocchino/sticky-pull-request-comment@773744901bac0e8cbb5a0dc842800d45e9b2b405 # v2.9.4
+        with:
+          header: terraform-plan
+          hide_and_recreate: true
+          hide_classify: OUTDATED
+          path: comment.md
+
+      - name: Fetch Infracost API key from SSM
+        if: steps.plan.outcome == 'success'
+        run: |
+          api_key="$(aws ssm get-parameter \
+            --name /infracost/api/token \
+            --with-decryption \
+            --query Parameter.Value \
+            --output text)"
+          echo "::add-mask::${api_key}"
+          echo "INFRACOST_API_KEY=${api_key}" >> "$GITHUB_ENV"
+
+      - name: Setup Infracost
+        if: steps.plan.outcome == 'success'
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ env.INFRACOST_API_KEY }}
+
+      - name: Checkout base branch
+        if: steps.plan.outcome == 'success'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          path: infracost-base
+
+      - name: Infracost baseline (current monthly cost on base branch)
+        if: steps.plan.outcome == 'success'
+        run: |
+          infracost breakdown --path infracost-base \
+            --format json \
+            --out-file /tmp/infracost-base.json
+
+      - name: Infracost diff (added cost from this PR)
+        if: steps.plan.outcome == 'success'
+        run: |
+          infracost diff --path plan.json \
+            --compare-to /tmp/infracost-base.json \
+            --format json \
+            --out-file /tmp/infracost.json
+
+      - name: Post Infracost comment
+        if: steps.plan.outcome == 'success'
+        run: |
+          infracost comment github --path /tmp/infracost.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --pull-request "${{ github.event.pull_request.number }}" \
+            --github-token "${{ secrets.GITHUB_TOKEN }}" \
+            --behavior update
+
+      - name: Fail if plan failed
+        if: steps.plan.outcome == 'failure'
+        run: exit 1

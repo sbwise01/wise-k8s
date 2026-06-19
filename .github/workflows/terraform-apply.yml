@@ -1,0 +1,139 @@
+name: Terraform Apply
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "iac/terraform/*.tf"
+
+permissions:
+  id-token: write # required for AWS OIDC
+  contents: read
+  pull-requests: write # required to comment on the originating PR
+
+env:
+  AWS_REGION: us-east-2
+  TF_ROLE_ARN: arn:aws:iam::712671171381:role/terraform-role
+
+concurrency:
+  group: terraform-apply
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: Apply
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.TF_ROLE_ARN }}
+          role-session-name: gha-terraform-apply-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        id: init
+        run: terraform init -input=false
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          set +e
+          terraform plan -input=false -no-color -detailed-exitcode -out=tfplan 2>&1 | tee plan.txt
+          code=${PIPESTATUS[0]}
+          echo "exitcode=${code}" >> "$GITHUB_OUTPUT"
+          # 0 = no changes, 2 = changes present, 1 = error
+          if [ "${code}" -eq 1 ]; then
+            exit 1
+          fi
+          exit 0
+        continue-on-error: true
+
+      - name: Terraform Apply
+        id: apply
+        if: steps.plan.outputs.exitcode == '2'
+        run: terraform apply -input=false -no-color tfplan 2>&1 | tee apply.txt
+        continue-on-error: true
+
+      - name: Find originating pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          number=$(gh api \
+            "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" \
+            --jq '.[0].number // empty')
+          echo "number=${number}" >> "$GITHUB_OUTPUT"
+          if [ -n "${number}" ]; then
+            echo "Found originating PR #${number}"
+          else
+            echo "No originating PR for commit ${{ github.sha }}; skipping comment."
+          fi
+
+      - name: Build PR comment
+        if: steps.pr.outputs.number != ''
+        run: |
+          {
+            echo "## Terraform Apply"
+            echo ""
+            echo "| Step | Result |"
+            echo "| --- | --- |"
+            echo "| Init | \`${{ steps.init.outcome }}\` |"
+            echo "| Plan | \`${{ steps.plan.outcome }}\` |"
+            echo "| Apply | \`${{ steps.apply.outcome }}\` |"
+            echo ""
+            # GitHub comments cap at 65536 chars; keep headroom for the wrapper.
+            if [ "${{ steps.plan.outputs.exitcode }}" = "2" ]; then
+              echo "<details><summary>Show Apply</summary>"
+              echo ""
+              echo '```terraform'
+              head -c 60000 apply.txt
+              if [ "$(wc -c < apply.txt)" -gt 60000 ]; then
+                echo ""
+                echo "... output truncated, see the workflow logs for the full apply ..."
+              fi
+              echo '```'
+              echo ""
+              echo "</details>"
+            else
+              echo "_No changes detected in the plan — apply was skipped._"
+              echo ""
+              echo "<details><summary>Show Plan</summary>"
+              echo ""
+              echo '```terraform'
+              head -c 60000 plan.txt
+              if [ "$(wc -c < plan.txt)" -gt 60000 ]; then
+                echo ""
+                echo "... output truncated, see the workflow logs for the full plan ..."
+              fi
+              echo '```'
+              echo ""
+              echo "</details>"
+            fi
+            echo ""
+            echo "_Merged by @${{ github.actor }} · Commit: \`${{ github.sha }}\`_"
+          } > comment.md
+
+      - name: Post apply comment
+        if: steps.pr.outputs.number != ''
+        uses: marocchino/sticky-pull-request-comment@773744901bac0e8cbb5a0dc842800d45e9b2b405 # v2.9.4
+        with:
+          header: terraform-apply
+          number: ${{ steps.pr.outputs.number }}
+          path: comment.md
+
+      - name: Fail if plan failed
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Fail if apply failed
+        if: steps.apply.outcome == 'failure'
+        run: exit 1
