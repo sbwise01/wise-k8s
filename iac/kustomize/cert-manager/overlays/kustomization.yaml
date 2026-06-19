@@ -6,5 +6,8 @@ resources:
 
 patches:
   - target:
+      kind: Deployment
+    path: patches/aws-region.yaml
+  - target:
       kind: ServiceAccount
     path: patches/aws-role.yaml
