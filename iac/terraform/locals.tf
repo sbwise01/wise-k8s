@@ -1,4 +1,5 @@
 locals {
+  region = "us-east-2"
   route53 = {
     parent_zone       = "home.bradandmarsha.com"
     delegation_set_id = "N01520513SWFAR055EX7G"
