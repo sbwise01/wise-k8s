@@ -2,11 +2,13 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../base/v1.19.0
+  - ../base/v1.19.5
+  - ceph-config-map.yaml
   - certificate.yaml
   - cert-issuer.yaml
   - csi-kms-config-map.yaml
-  - ceph-config-map.yaml
+  - csi-nodeplugin-sa.yaml
+  - csi-provisioner-sa.yaml
   - csi-rbdplugin-provisioner.yaml
   - csi-rbdplugin.yaml
   - csi-rbd-sc.yaml
@@ -14,5 +16,27 @@ resources:
   - toolbox.yaml
 
 patches:
-  - path: patches/csi-nodeplugin-rbac.yaml
-  - path: patches/csi-provisioner-rbac.yaml
+  - target:
+      kind: ClusterRole
+      name: rbd-csi-nodeplugin
+    path: patches/csi-nodeplugin-cluster-role.yaml
+  - target:
+      kind: ClusterRoleBinding
+      name: rbd-csi-nodeplugin
+    path: patches/csi-nodeplugin-cluster-role-binding.yaml
+  - target:
+      kind: ClusterRole
+      name: rbd-external-provisioner-runner
+    path: patches/csi-provisioner-cluster-role.yaml
+  - target:
+      kind: ClusterRoleBinding
+      name: rbd-csi-provisioner-role
+    path: patches/csi-provisioner-cluster-role-binding.yaml
+  - target:
+      kind: Role
+      name: rbd-external-provisioner-cfg
+    path: patches/csi-provisioner-role.yaml
+  - target:
+      kind: RoleBinding
+      name: rbd-csi-provisioner-role-cfg
+    path: patches/csi-provisioner-role-binding.yaml

@@ -1,0 +1,15 @@
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: rbd-csi-provisioner-role-cfg
+  # replace with non-default namespace name
+  namespace: rook-ceph
+subjects:
+  - kind: ServiceAccount
+    name: rbd-csi-provisioner
+    # replace with non-default namespace name
+    namespace: rook-ceph
+roleRef:
+  kind: Role
+  name: rbd-external-provisioner-cfg
+  apiGroup: rbac.authorization.k8s.io
