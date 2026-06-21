@@ -3,18 +3,4 @@ kind: Kustomization
 
 resources:
   - flux-system/
-  - aws-iam-oidc-provider.yaml
-  - cert-manager.yaml
-  - external-dns.yaml
-  - flask-hello-world.yaml
-  - ingress-nginx.yaml
-  - kube-prometheus-stack.yaml
-  - lets-encrypt.yaml
-  - media.yaml
-  - metal-lb.yaml
-  - plex.yaml
-  - pod-identity-webhook.yaml
-  - postgres.yaml
-  - rook.yaml
-  - route53-ddns.yaml
-  - wise-home-index.yaml
+  - kustomizations/
