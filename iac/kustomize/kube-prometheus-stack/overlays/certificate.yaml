@@ -12,4 +12,4 @@ spec:
   issuerRef:
     name: selfsigned-issuer-grafana-dashboard
     kind: Issuer
-    group:
+    group: cert-manager.io

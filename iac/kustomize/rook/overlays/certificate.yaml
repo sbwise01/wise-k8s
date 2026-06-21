@@ -13,4 +13,4 @@ spec:
   issuerRef:
     name: selfsigned-issuer
     kind: Issuer
-    group:
+    group: cert-manager.io
