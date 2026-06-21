@@ -24,4 +24,4 @@ spec:
   issuerRef:
     name: selfsigned-issuer-pod-identity
     kind: ClusterIssuer
-    group:
+    group: cert-manager.io
