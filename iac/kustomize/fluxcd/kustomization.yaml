@@ -5,3 +5,4 @@ resources:
   - flux-system/
   - flask-hello-world.yaml
   - media.yaml
+  - wise-home-index.yaml
