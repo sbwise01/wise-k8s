@@ -15,5 +15,6 @@ resources:
   - plex.yaml
   - pod-identity-webhook.yaml
   - postgres.yaml
+  - rook.yaml
   - route53-ddns.yaml
   - wise-home-index.yaml
