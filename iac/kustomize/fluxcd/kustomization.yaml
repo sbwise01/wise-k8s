@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - flux-system/
   - flask-hello-world.yaml
+  - media.yaml
