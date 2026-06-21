@@ -1,7 +1,7 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: flask-hello-world
+  name: wise-home-index
   namespace: flux-system
 spec:
   interval: 10m0s
