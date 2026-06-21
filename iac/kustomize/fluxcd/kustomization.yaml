@@ -3,6 +3,11 @@ kind: Kustomization
 
 resources:
   - flux-system/
+  - cert-manager.yaml
+  - external-dns.yaml
   - flask-hello-world.yaml
+  - kube-prometheus-stack.yaml
+  - lets-encrypt.yaml
   - media.yaml
+  - route53-ddns.yaml
   - wise-home-index.yaml
