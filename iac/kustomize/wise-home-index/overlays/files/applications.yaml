@@ -4,7 +4,7 @@ applications:
     image: https://media.home.bradandmarsha.com/media/flaskred.png
 
   - name: Ceph Dashboard
-    url: https://ceph-dashboard/
+    url: https://ceph-dashboard.home.bradandmarsha.com/
     image: https://media.home.bradandmarsha.com/media/ceph.svg
 
   - name: Grafana Dashboard

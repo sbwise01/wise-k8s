@@ -8,16 +8,15 @@ metadata:
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
     # Optional: May be needed if the Ceph dashboard uses a self-signed certificate (common in default deployments)
     nginx.ingress.kubernetes.io/proxy-ssl-verify: "off"
-    # Optional: Useful if you need to strip a path prefix
-    # nginx.ingress.kubernetes.io/rewrite-target: /
+    external-dns.alpha.kubernetes.io/hostname: ceph-dashboard.home.bradandmarsha.com
 spec:
-  ingressClassName: nginx
+  ingressClassName: nginx-internal
   tls:
   - hosts:
-    - ceph-dashboard
-    secretName: ceph-dashboard-selfsigned-cert
+    - ceph-dashboard.home.bradandmarsha.com
+    secretName: certificate-ceph-dashboard
   rules:
-  - host: ceph-dashboard
+  - host: ceph-dashboard.home.bradandmarsha.com
     http:
       paths:
       - path: /
