@@ -1,0 +1,12 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-stack-grafana
+spec:
+  template:
+    spec:
+      containers:
+        - name: grafana
+          env:
+            - name: GF_SERVER_DOMAIN
+              value: grafana-dashboard.home.bradandmarsha.com

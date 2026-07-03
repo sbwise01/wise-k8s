@@ -4,12 +4,20 @@ metadata:
   name: certificate-grafana-dashboard
 spec:
   secretName: certificate-grafana-dashboard
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
   duration: 2160h # 90d
   renewBefore: 360h # 15d
-  commonName: "grafana-dashboard"
+  subject:
+    organizations:
+    - bradandmarsha
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+    - server auth
   dnsNames:
-  - "grafana-dashboard"
-  issuerRef:
-    name: selfsigned-issuer-grafana-dashboard
-    kind: Issuer
-    group: cert-manager.io
+  - 'grafana-dashboard.home.bradandmarsha.com'

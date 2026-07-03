@@ -6,7 +6,6 @@ namespace: monitoring
 resources:
   - namespace.yaml
   - ../base/0.91.0
-  - cert-issuer.yaml
   - certificate.yaml
 
 patches:
@@ -14,3 +13,7 @@ patches:
       kind: Ingress
       name: prometheus-stack-grafana
     path: patches/ingress.yaml
+  - target:
+      kind: Deployment
+      name: prometheus-stack-grafana
+    path: patches/grafana-domain.yaml

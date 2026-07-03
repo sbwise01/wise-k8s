@@ -1,10 +1,20 @@
 - op: add
+  path: /metadata/annotations
+  value:
+    external-dns.alpha.kubernetes.io/hostname: grafana-dashboard.home.bradandmarsha.com
+    external-dns.alpha.kubernetes.io/target: home.bradandmarsha.com
+
+- op: add
   path: /spec/ingressClassName
   value: nginx
+
+- op: replace
+  path: /spec/rules/0/host
+  value: grafana-dashboard.home.bradandmarsha.com
 
 - op: add
   path: /spec/tls
   value:
     - hosts:
-      - grafana-dashboard
+      - grafana-dashboard.home.bradandmarsha.com
       secretName: certificate-grafana-dashboard
