@@ -5,7 +5,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m0s
-  path: ./iac/kustomize/ingress-nginx/overlays
+  path: ./iac/kustomize/ingress-nginx/overlays/public
   prune: true
   sourceRef:
     kind: GitRepository
