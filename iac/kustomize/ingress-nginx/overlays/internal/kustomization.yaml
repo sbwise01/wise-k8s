@@ -71,3 +71,8 @@ patches:
       - op: replace
         path: /metadata/name
         value: ingress-nginx-admission-internal
+      - op: add
+        path: /webhooks/0/matchConditions
+        value:
+          - name: nginx-internal
+            expression: "object.spec.ingressClassName == 'nginx-internal'"
