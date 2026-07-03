@@ -3,10 +3,9 @@ kind: Ingress
 metadata:
   annotations:
     external-dns.alpha.kubernetes.io/hostname: flask-hello-world.home.bradandmarsha.com
-    external-dns.alpha.kubernetes.io/target: home.bradandmarsha.com
   name: ingress-flask-hello-world
 spec:
-  ingressClassName: nginx
+  ingressClassName: nginx-internal
   tls:
     - hosts:
       - flask-hello-world.home.bradandmarsha.com
