@@ -5,3 +5,8 @@
 - op: add
   path: /spec/externalTrafficPolicy
   value: Local
+
+- op: add
+  path: /metadata/annotations
+  value:
+    metallb.io/address-pool: home-pool
