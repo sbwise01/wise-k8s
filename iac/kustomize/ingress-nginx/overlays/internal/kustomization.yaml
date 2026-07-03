@@ -11,3 +11,63 @@ patches:
       kind: Service
       name: ingress-nginx-controller
     path: patches/controller-lb.yaml
+  - target:
+      kind: Deployment
+      name: ingress-nginx-controller
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/args
+        value:
+          - "/nginx-ingress-controller"
+          - "--election-id=ingress-nginx-leader-internal"
+          - "--controller-class=k8s.io/ingress-nginx-internal"
+          - "--ingress-class=nginx-internal"
+          - "--configmap=$(POD_NAMESPACE)/ingress-nginx-controller"
+          - "--validating-webhook=:8443"
+          - "--validating-webhook-certificate=/usr/local/certificates/cert"
+          - "--validating-webhook-key=/usr/local/certificates/key"
+  - target:
+      kind: ClusterRole
+      name: ingress-nginx-admission
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: ingress-nginx-admission-internal
+  - target:
+      kind: ClusterRoleBinding
+      name: ingress-nginx-admission
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: ingress-nginx-admission-internal
+  - target:
+      kind: ClusterRole
+      name: ingress-nginx
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: ingress-nginx-internal
+  - target:
+      kind: ClusterRoleBinding
+      name: ingress-nginx
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: ingress-nginx-internal
+  - target:
+      kind: IngressClass
+      name: nginx
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: nginx-internal
+      - op: replace
+        path: /spec/controller
+        value: k8s.io/ingress-nginx-internal
+  - target:
+      kind: ValidatingWebhookConfiguration
+      name: ingress-nginx-admission
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: ingress-nginx-admission-internal
