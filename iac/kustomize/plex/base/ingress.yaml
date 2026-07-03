@@ -4,6 +4,11 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/hostname: plex.home.bradandmarsha.com
     external-dns.alpha.kubernetes.io/target: home.bradandmarsha.com
+    index.home.bradandmarsha.com/enabled: "true"
+    index.home.bradandmarsha.com/name: "Wise k8s Plex"
+    index.home.bradandmarsha.com/image: "https://media.home.bradandmarsha.com/media/plex-icon-filled-256.png"
+    index.home.bradandmarsha.com/description: "Plex media server for the home cluster"
+    index.home.bradandmarsha.com/weight: "10"
   labels:
     app: plex-media-server
     app.kubernetes.io/instance: plex

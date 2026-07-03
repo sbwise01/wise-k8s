@@ -4,3 +4,34 @@ metadata:
   name: wise-home-index
   labels:
     account: wise-home-index
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: wise-home-index
+  labels:
+    app: wise-home-index
+rules:
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: wise-home-index
+  labels:
+    app: wise-home-index
+subjects:
+  - kind: ServiceAccount
+    name: wise-home-index
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: wise-home-index
+  apiGroup: rbac.authorization.k8s.io

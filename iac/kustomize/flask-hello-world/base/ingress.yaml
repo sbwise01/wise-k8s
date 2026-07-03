@@ -4,6 +4,11 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/hostname: flask-hello-world.home.bradandmarsha.com
     external-dns.alpha.kubernetes.io/target: home.bradandmarsha.com
+    index.home.bradandmarsha.com/enabled: "true"
+    index.home.bradandmarsha.com/name: "Flask Hello World"
+    index.home.bradandmarsha.com/image: "https://media.home.bradandmarsha.com/media/flaskred.png"
+    index.home.bradandmarsha.com/description: "Sample Flask app for testing changes to the cluster"
+    index.home.bradandmarsha.com/weight: "20"
   name: ingress-flask-hello-world
 spec:
   ingressClassName: nginx

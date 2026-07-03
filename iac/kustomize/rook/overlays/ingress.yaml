@@ -9,6 +9,11 @@ metadata:
     # Optional: May be needed if the Ceph dashboard uses a self-signed certificate (common in default deployments)
     nginx.ingress.kubernetes.io/proxy-ssl-verify: "off"
     external-dns.alpha.kubernetes.io/hostname: ceph-dashboard.home.bradandmarsha.com
+    index.home.bradandmarsha.com/enabled: "true"
+    index.home.bradandmarsha.com/name: "Ceph Dashboard"
+    index.home.bradandmarsha.com/image: "https://media.home.bradandmarsha.com/media/ceph.svg"
+    index.home.bradandmarsha.com/description: "Rook-Ceph storage cluster management UI"
+    index.home.bradandmarsha.com/weight: "30"
 spec:
   ingressClassName: nginx-internal
   tls:

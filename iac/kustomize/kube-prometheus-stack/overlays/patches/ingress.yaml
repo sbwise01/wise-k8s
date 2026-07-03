@@ -2,6 +2,11 @@
   path: /metadata/annotations
   value:
     external-dns.alpha.kubernetes.io/hostname: grafana-dashboard.home.bradandmarsha.com
+    index.home.bradandmarsha.com/enabled: "true"
+    index.home.bradandmarsha.com/name: "Grafana Dashboard"
+    index.home.bradandmarsha.com/image: "https://media.home.bradandmarsha.com/media/grafana.jpg"
+    index.home.bradandmarsha.com/description: "Metrics and observability dashboards"
+    index.home.bradandmarsha.com/weight: "40"
 
 - op: add
   path: /spec/ingressClassName
