@@ -24,3 +24,12 @@ patches:
           - "--validating-webhook=:8443"
           - "--validating-webhook-certificate=/usr/local/certificates/cert"
           - "--validating-webhook-key=/usr/local/certificates/key"
+  - target:
+      kind: ValidatingWebhookConfiguration
+      name: ingress-nginx-admission
+    patch: |-
+      - op: add
+        path: /webhooks/0/matchConditions
+        value:
+          - name: nginx
+            expression: "object.spec.ingressClassName == 'nginx'"

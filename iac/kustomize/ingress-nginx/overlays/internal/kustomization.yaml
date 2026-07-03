@@ -76,3 +76,16 @@ patches:
         value:
           - name: nginx-internal
             expression: "object.spec.ingressClassName == 'nginx-internal'"
+  - target:
+      kind: Job
+      name: ingress-nginx-admission-patch
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/args
+        value:
+          - "patch"
+          - "--webhook-name=ingress-nginx-admission-internal"
+          - "--namespace=$(POD_NAMESPACE)"
+          - "--patch-mutating=false"
+          - "--secret-name=ingress-nginx-admission"
+          - "--patch-failure-policy=Fail"
