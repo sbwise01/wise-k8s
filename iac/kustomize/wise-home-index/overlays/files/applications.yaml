@@ -8,7 +8,7 @@ applications:
     image: https://media.home.bradandmarsha.com/media/ceph.svg
 
   - name: Grafana Dashboard
-    url: https://grafana-dashboard/
+    url: https://grafana-dashboard.home.bradandmarsha.com/
     image: https://media.home.bradandmarsha.com/media/grafana.jpg
 
   - name: Wise k8s Plex
