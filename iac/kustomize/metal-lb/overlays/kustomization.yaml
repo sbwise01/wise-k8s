@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - ../base
   - home-pool.yaml
+  - home-pool-internal.yaml
