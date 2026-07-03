@@ -55,6 +55,14 @@ patches:
         path: /metadata/name
         value: ingress-nginx-internal
   - target:
+      kind: Role
+      name: ingress-nginx
+    patch: |-
+      - op: replace
+        path: /rules/6/resourceNames
+        value:
+          - ingress-nginx-leader-internal
+  - target:
       kind: IngressClass
       name: nginx
     patch: |-
