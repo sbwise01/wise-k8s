@@ -2,11 +2,10 @@
   path: /metadata/annotations
   value:
     external-dns.alpha.kubernetes.io/hostname: grafana-dashboard.home.bradandmarsha.com
-    external-dns.alpha.kubernetes.io/target: home.bradandmarsha.com
 
 - op: add
   path: /spec/ingressClassName
-  value: nginx
+  value: nginx-internal
 
 - op: replace
   path: /spec/rules/0/host
