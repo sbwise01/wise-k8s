@@ -6,12 +6,11 @@ namespace: default
 resources:
   - ../base
 
+images:
+  - name: sbwise/wise-home-index
+    newTag: 2.0.0
+
 patches:
   - target:
       kind: Deployment
     path: patches/deployment.yaml
-
-configMapGenerator:
-  - name: app-config
-    files:
-      - files/applications.yaml

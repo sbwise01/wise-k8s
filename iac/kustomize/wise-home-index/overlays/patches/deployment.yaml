@@ -9,17 +9,3 @@
   value:
     name: WISE_HOME_INDEX_PUBLIC_HOST
     value: "home.bradandmarsha.com"
-
-- op: add
-  path: /spec/template/spec/volumes/-
-  value:
-    name: app-config-volume
-    configMap:
-      name: app-config
-
-- op: add
-  path: /spec/template/spec/containers/0/volumeMounts/-
-  value:
-    name: app-config-volume
-    mountPath: /config/applications.yaml
-    subPath: applications.yaml

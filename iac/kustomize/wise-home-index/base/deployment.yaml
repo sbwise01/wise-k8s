@@ -37,10 +37,26 @@ spec:
           env:
           - name: APP_NAME
             value: wise-home-index
-          image: sbwise/wise-home-index:1.1.1
+          image: sbwise/wise-home-index:2.0.0
           imagePullPolicy: IfNotPresent
           ports:
           - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
           resources:
             limits:
               cpu: 100m
