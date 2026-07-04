@@ -1,0 +1,12 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cloud-native-pg
+  namespace: flux-system
+spec:
+  interval: 10m0s
+  path: ./iac/kustomize/cloud-native-pg/overlays
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
