@@ -16,6 +16,10 @@ patches:
       name: prometheus-stack-grafana
     path: patches/grafana-domain.yaml
   - target:
+      kind: Prometheus
+      name: prometheus-stack-kube-prom-prometheus
+    path: patches/prometheus-external-labels.yaml
+  - target:
       kind: Service
       name: prometheus-stack-kube-prom-coredns
     path: patches/kube-system-exporter-service.yaml
