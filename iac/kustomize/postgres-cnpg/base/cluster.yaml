@@ -1,0 +1,45 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-db
+  namespace: postgres-cpnpg
+spec:
+  # 1 primary + 2 hot standbys; survives pod loss + rolling restart. On a
+  # single scheduling node they co-locate (node loss not survived — acceptable
+  # for the memory backend;
+  instances: 3
+
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.6-standard-trixie
+
+  postgresql:
+    parameters:
+      max_connections: "200"
+      shared_buffers: "256MB"
+
+  minSyncReplicas: 1
+  maxSyncReplicas: 1
+
+  storage:
+    size: 10Gi
+    storageClass: csi-rbd-sc
+
+  # CNPG generates the app-role password into Secret postgres-db-app
+  # (keys: username, password, dbname, host, port, uri, jdbc-uri, ...).
+  bootstrap:
+    initdb:
+      database: postgres
+      owner: postgres
+
+  inheritedMetadata:
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "9187"
+      prometheus.io/path: "/metrics"
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
