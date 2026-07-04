@@ -1,0 +1,11 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: postgres
+  namespace: postgres-cpnpg
+spec:
+  name: postgres
+  owner: postgres
+  cluster:
+    name: postgres-db
+  extensions: []
