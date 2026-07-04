@@ -1,8 +1,8 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: postgres-db
-  namespace: postgres-cnpg
+  name: plex-db
+  namespace: plex-cnpg
 spec:
   # 1 primary + 2 hot standbys; survives pod loss + rolling restart. On a
   # single scheduling node they co-locate (node loss not survived — acceptable
@@ -15,8 +15,6 @@ spec:
     parameters:
       max_connections: "200"
       shared_buffers: "256MB"
-    pg_hba:
-      - host all all all md5
 
   minSyncReplicas: 1
   maxSyncReplicas: 1
@@ -25,12 +23,12 @@ spec:
     size: 10Gi
     storageClass: csi-rbd-sc
 
-  # CNPG generates the app-role password into Secret postgres-db-app
+  # CNPG generates the app-role password into Secret plex-db-app
   # (keys: username, password, dbname, host, port, uri, jdbc-uri, ...).
   bootstrap:
     initdb:
-      database: postgres
-      owner: postgres
+      database: plex
+      owner: plex
 
   inheritedMetadata:
     annotations:

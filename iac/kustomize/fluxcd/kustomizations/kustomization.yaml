@@ -14,6 +14,7 @@ resources:
   - media.yaml
   - metal-lb.yaml
   - plex.yaml
+  - plex-cnpg.yaml
   - pod-identity-webhook.yaml
   - postgres.yaml
   - rook.yaml
