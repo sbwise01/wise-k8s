@@ -3,3 +3,8 @@ kind: Kustomization
 
 resources:
   - ../base
+  - image-automation.yaml
+
+images:
+  - name: sbwise/pms-docker
+    newTag: 2.0.0 # {"$imagepolicy": "flux-system:pms-docker:tag"}

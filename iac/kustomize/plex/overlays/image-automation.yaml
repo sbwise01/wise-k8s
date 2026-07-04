@@ -1,0 +1,52 @@
+---
+# Applied by this overlay's Flux Kustomization. metadata.namespace: flux-system is
+# set explicitly; the overlay does not set namespace: default (base does, for workloads).
+# ImageUpdateAutomation sourceRef uses the existing flux-system GitRepository.
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: pms-docker
+  namespace: flux-system
+spec:
+  image: sbwise/pms-docker
+  interval: 5m
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: pms-docker
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: pms-docker
+  policy:
+    semver:
+      range: ">=2.0.0"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageUpdateAutomation
+metadata:
+  name: pms-docker
+  namespace: flux-system
+spec:
+  interval: 5m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        name: fluxcdbot
+        email: fluxcdbot@users.noreply.github.com
+      messageTemplate: |
+        chore(images): bump pms-docker
+        {{range .Changed.Changes}}- {{.OldValue}} -> {{.NewValue}}
+        {{end}}
+    push:
+      branch: main
+  update:
+    path: ./iac/kustomize/plex/overlays
+    strategy: Setters
