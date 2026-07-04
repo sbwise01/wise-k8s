@@ -1,10 +1,10 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Database
 metadata:
-  name: postgres
+  name: plex
   namespace: postgres-cpnpg
 spec:
-  name: postgres
+  name: plex
   owner: postgres
   cluster:
     name: postgres-db
