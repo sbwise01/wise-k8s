@@ -41,11 +41,17 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
           - containerPort: 8080
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
           readinessProbe:
             httpGet:
               path: /health
               port: 8080
-            initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 3
@@ -53,16 +59,15 @@ spec:
             httpGet:
               path: /health
               port: 8080
-            initialDelaySeconds: 30
             periodSeconds: 20
             timeoutSeconds: 3
             failureThreshold: 3
           resources:
             limits:
-              cpu: 100m
+              cpu: 1000m
               memory: 2Gi
             requests:
-              cpu: 10m
+              cpu: 100m
               memory: 1Gi
           volumeMounts: []
       volumes: []
