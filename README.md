@@ -9,3 +9,4 @@ Repository to house manifests and applications hosted in the wise-k8s homelab
 1. Assuming above, perhaps fold home subdomain into TLD
 1. Replace Ingress' with Gateway API
 1. Replace hand spun postgres with cloudnative pg
+1. Convert Flux `flux-system` git credentials from read-only deploy key to a GitHub App (write access for ImageUpdateAutomation)
