@@ -8,7 +8,7 @@ resources:
 
 images:
   - name: sbwise/wise-home-index
-    newTag: 2.0.0
+    newTag: 2.1.0
 
 patches:
   - target:
