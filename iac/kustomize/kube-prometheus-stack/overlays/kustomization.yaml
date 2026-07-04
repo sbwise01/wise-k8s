@@ -1,8 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: monitoring
-
 resources:
   - namespace.yaml
   - ../base/0.91.0
@@ -17,3 +15,23 @@ patches:
       kind: Deployment
       name: prometheus-stack-grafana
     path: patches/grafana-domain.yaml
+  - target:
+      kind: Service
+      name: prometheus-stack-kube-prom-coredns
+    path: patches/kube-system-exporter-service.yaml
+  - target:
+      kind: Service
+      name: prometheus-stack-kube-prom-kube-controller-manager
+    path: patches/kube-system-exporter-service.yaml
+  - target:
+      kind: Service
+      name: prometheus-stack-kube-prom-kube-etcd
+    path: patches/kube-system-exporter-service.yaml
+  - target:
+      kind: Service
+      name: prometheus-stack-kube-prom-kube-proxy
+    path: patches/kube-system-exporter-service.yaml
+  - target:
+      kind: Service
+      name: prometheus-stack-kube-prom-kube-scheduler
+    path: patches/kube-system-exporter-service.yaml
