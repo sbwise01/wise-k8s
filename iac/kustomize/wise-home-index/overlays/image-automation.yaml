@@ -42,7 +42,9 @@ spec:
         name: fluxcdbot
         email: fluxcdbot@users.noreply.github.com
       messageTemplate: |
-        chore(images): bump wise-home-index to {{range .Updated.Images}}{{println .}}{{end}}
+        chore(images): bump wise-home-index
+        {{range .Changed.Changes}}- {{.OldValue}} -> {{.NewValue}}
+        {{end}}
     push:
       branch: main
   update:
