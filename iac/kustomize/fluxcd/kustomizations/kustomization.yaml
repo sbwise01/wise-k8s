@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - aws-iam-oidc-provider.yaml
   - cert-manager.yaml
+  - cloud-native-pg.yaml
   - external-dns.yaml
   - flask-hello-world.yaml
   - ingress-nginx-internal.yaml
