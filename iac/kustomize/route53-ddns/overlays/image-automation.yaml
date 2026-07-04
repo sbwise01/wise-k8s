@@ -1,0 +1,52 @@
+---
+# Applied by this overlay's Flux Kustomization. metadata.namespace: flux-system is
+# set explicitly; the overlay does not set a global namespace (base sets it for workloads).
+# ImageUpdateAutomation sourceRef uses the existing flux-system GitRepository.
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: route53-ddns
+  namespace: flux-system
+spec:
+  image: sbwise/route53-ddns
+  interval: 5m
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: route53-ddns
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: route53-ddns
+  policy:
+    semver:
+      range: ">=2.0.0"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageUpdateAutomation
+metadata:
+  name: route53-ddns
+  namespace: flux-system
+spec:
+  interval: 5m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        name: fluxcdbot
+        email: fluxcdbot@users.noreply.github.com
+      messageTemplate: |
+        chore(images): bump route53-ddns
+        {{range .Changed.Changes}}- {{.OldValue}} -> {{.NewValue}}
+        {{end}}
+    push:
+      branch: main
+  update:
+    path: ./iac/kustomize/route53-ddns/overlays
+    strategy: Setters
