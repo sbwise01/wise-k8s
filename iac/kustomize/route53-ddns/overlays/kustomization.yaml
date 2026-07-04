@@ -1,9 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 resources:
   - ../base
   - image-automation.yaml
 images:
   - name: sbwise/route53-ddns
-    newTag: 1.0.0 # {"$imagepolicy": "flux-system:route53-ddns:tag"}
+    newTag: 1.0.1 # {"$imagepolicy": "flux-system:route53-ddns:tag"}
