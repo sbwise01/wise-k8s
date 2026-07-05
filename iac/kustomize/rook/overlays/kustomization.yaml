@@ -13,8 +13,13 @@ resources:
   - csi-rbd-sc.yaml
   - ingress.yaml
   - toolbox.yaml
+  - monitoring-rbac.yaml
 
 patches:
+  - target:
+      kind: CephCluster
+      name: rook-ceph
+    path: patches/ceph-monitoring.yaml
   - target:
       kind: ClusterRole
       name: rbd-csi-nodeplugin
