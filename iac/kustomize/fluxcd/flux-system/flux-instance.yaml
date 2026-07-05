@@ -22,9 +22,10 @@ spec:
   sync:
     kind: GitRepository
     name: flux-system
-    url: ssh://git@github.com/sbwise01/wise-k8s
+    url: https://github.com/sbwise01/wise-k8s
     ref: refs/heads/main
     path: ./iac/kustomize/fluxcd
+    provider: github
     pullSecret: flux-system
     interval: 1m
   migrateResources: true
