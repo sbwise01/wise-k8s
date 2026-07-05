@@ -6,3 +6,4 @@ resources:
   - operator.yaml
   - certificate.yaml
   - ingress.yaml
+  - networkpolicy-flux-web-ingress.yaml

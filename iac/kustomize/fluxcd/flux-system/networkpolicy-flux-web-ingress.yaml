@@ -1,0 +1,26 @@
+# Allow nginx-internal ingress controller to reach the Flux Web UI (port 9080).
+# FluxInstance networkPolicy creates allow-egress (same-namespace only) and
+# allow-scraping (8080 only); 9080 is not reachable from other namespaces without this.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-flux-web
+  namespace: flux-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: flux-operator
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx-internal
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+              app.kubernetes.io/component: controller
+      ports:
+        - protocol: TCP
+          port: 9080
