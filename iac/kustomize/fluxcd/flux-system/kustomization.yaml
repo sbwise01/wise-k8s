@@ -4,3 +4,5 @@ resources:
   - flux-instance.yaml
   - namespace.yaml
   - operator.yaml
+  - certificate.yaml
+  - ingress.yaml

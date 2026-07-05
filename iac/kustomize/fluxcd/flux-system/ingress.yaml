@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flux-web
+  namespace: flux-system
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: flux-web.home.bradandmarsha.com
+    index.home.bradandmarsha.com/enabled: "true"
+    index.home.bradandmarsha.com/name: "Flux Web UI"
+    index.home.bradandmarsha.com/image: "https://media.home.bradandmarsha.com/media/flux-operator.svg"
+    index.home.bradandmarsha.com/description: "GitOps pipeline status and reconciliation dashboard"
+    index.home.bradandmarsha.com/weight: "35"
+spec:
+  ingressClassName: nginx-internal
+  tls:
+  - hosts:
+    - flux-web.home.bradandmarsha.com
+    secretName: certificate-flux-web
+  rules:
+  - host: flux-web.home.bradandmarsha.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: flux-operator
+            port:
+              name: http-web
