@@ -5,4 +5,4 @@ resources:
   - image-automation.yaml
 images:
   - name: sbwise/pms-docker
-    newTag: 2.1.1 # {"$imagepolicy": "flux-system:pms-docker:tag"}
+    newTag: 2.1.2 # {"$imagepolicy": "flux-system:pms-docker:tag"}
