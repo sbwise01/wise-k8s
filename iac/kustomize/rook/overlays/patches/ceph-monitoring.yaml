@@ -1,11 +1,12 @@
-# Phase 1: enable Rook monitoring integration with kube-prometheus-stack.
-# ServiceMonitors get release: prometheus-stack via spec.labels.monitoring.
 apiVersion: ceph.rook.io/v1
 kind: CephCluster
 metadata:
   name: rook-ceph
   namespace: rook-ceph
 spec:
+  dashboard:
+    prometheusEndpoint: http://prometheus-stack-kube-prom-prometheus.monitoring.svc:9090
+    prometheusEndpointSSLVerify: false
   monitoring:
     enabled: true
   labels:
