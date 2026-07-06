@@ -1,10 +1,38 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+namespace: monitoring
+
 resources:
   - namespace.yaml
   - ../base/0.91.0
   - certificate.yaml
+
+configMapGenerator:
+  - name: ceph-cluster-dashboard
+    files:
+      - dashboards/ceph-cluster-dashboard.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Ceph
+  - name: ceph-osd-single-dashboard
+    files:
+      - dashboards/ceph-osd-single-dashboard.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Ceph
+  - name: ceph-pools-dashboard
+    files:
+      - dashboards/ceph-pools-dashboard.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Ceph
 
 patches:
   - target:
@@ -15,6 +43,10 @@ patches:
       kind: Deployment
       name: prometheus-stack-grafana
     path: patches/grafana-domain.yaml
+  - target:
+      kind: Deployment
+      name: prometheus-stack-grafana
+    path: patches/grafana-dashboard-sidecar.yaml
   - target:
       kind: Prometheus
       name: prometheus-stack-kube-prom-prometheus

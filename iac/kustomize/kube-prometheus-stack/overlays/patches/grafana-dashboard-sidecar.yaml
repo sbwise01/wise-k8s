@@ -1,0 +1,13 @@
+# Enable grafana_folder annotations on sidecar-provisioned dashboards (Ceph folder).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-stack-grafana
+spec:
+  template:
+    spec:
+      containers:
+        - name: grafana-sc-dashboard
+          env:
+            - name: FOLDER_ANNOTATION
+              value: grafana_folder
