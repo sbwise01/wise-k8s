@@ -1,0 +1,84 @@
+# Rook CephCluster supports dashboard.prometheusEndpoint but not Alertmanager.
+# Ceph docs: https://docs.ceph.com/en/squid/mgr/dashboard/#enabling-prometheus-alerting
+# This CronJob keeps mgr/dashboard ALERTMANAGER_* settings aligned with GitOps.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ceph-dashboard-alertmanager-config
+  namespace: rook-ceph
+spec:
+  schedule: "0 */6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: rook-ceph-default
+          containers:
+            - name: configure
+              image: quay.io/ceph/ceph:v19
+              command:
+                - /bin/bash
+                - -ec
+                - |
+                  CEPH_CONFIG="/etc/ceph/ceph.conf"
+                  MON_CONFIG="/etc/rook/mon-endpoints"
+                  KEYRING_FILE="/etc/ceph/keyring"
+
+                  mon_endpoints=$(cat "${MON_CONFIG}" | sed 's/[a-z0-9_-]\+=//g')
+                  cat <<EOF > "${CEPH_CONFIG}"
+                  [global]
+                  mon_host = ${mon_endpoints}
+
+                  [client.admin]
+                  keyring = ${KEYRING_FILE}
+                  EOF
+
+                  cat <<EOF > "${KEYRING_FILE}"
+                  [${ROOK_CEPH_USERNAME}]
+                  key = $(cat /var/lib/rook-ceph-mon/secret.keyring)
+                  EOF
+
+                  desired_host="http://prometheus-stack-kube-prom-alertmanager.monitoring.svc:9093"
+                  current_host="$(ceph dashboard get-alertmanager-api-host 2>/dev/null || true)"
+                  current_ssl="$(ceph dashboard get-alertmanager-api-ssl-verify 2>/dev/null || true)"
+
+                  if [[ "${current_host}" != "${desired_host}" ]]; then
+                    ceph dashboard set-alertmanager-api-host "${desired_host}"
+                  fi
+                  if [[ "${current_ssl}" != "False" ]]; then
+                    ceph dashboard set-alertmanager-api-ssl-verify false
+                  fi
+              env:
+                - name: ROOK_CEPH_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: rook-ceph-mon
+                      key: ceph-username
+              volumeMounts:
+                - mountPath: /etc/ceph
+                  name: ceph-config
+                - name: mon-endpoint-volume
+                  mountPath: /etc/rook
+                - name: ceph-admin-secret
+                  mountPath: /var/lib/rook-ceph-mon
+                  readOnly: true
+          volumes:
+            - name: ceph-admin-secret
+              secret:
+                secretName: rook-ceph-mon
+                items:
+                  - key: ceph-secret
+                    path: secret.keyring
+            - name: mon-endpoint-volume
+              configMap:
+                name: rook-ceph-mon-endpoints
+                items:
+                  - key: data
+                    path: mon-endpoints
+            - name: ceph-config
+              emptyDir: {}

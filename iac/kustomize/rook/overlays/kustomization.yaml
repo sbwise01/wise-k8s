@@ -15,6 +15,7 @@ resources:
   - toolbox.yaml
   - monitoring-rbac.yaml
   - prometheus-ceph-rules.yaml
+  - dashboard-alertmanager-config-cronjob.yaml
 
 patches:
   - target:
