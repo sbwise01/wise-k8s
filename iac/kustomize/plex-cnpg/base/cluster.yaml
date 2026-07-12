@@ -20,7 +20,7 @@ spec:
   maxSyncReplicas: 1
 
   storage:
-    size: 10Gi
+    size: 2Gi
     storageClass: csi-rbd-sc
 
   # CNPG generates the app-role password into Secret plex-db-app
