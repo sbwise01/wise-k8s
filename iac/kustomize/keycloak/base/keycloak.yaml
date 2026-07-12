@@ -20,8 +20,7 @@ spec:
     httpEnabled: true
   hostname:
     hostname: auth.home.bradandmarsha.com
-    # Phase 2 is internal-only (port-forward). Strict hostname checks resume in Phase 3.
-    strict: false
+    strict: true
   proxy:
     headers: xforwarded
   ingress:

@@ -3,5 +3,7 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
+  - certificate.yaml
+  - ingress.yaml
   - db-credentials-sync.yaml
   - keycloak.yaml
