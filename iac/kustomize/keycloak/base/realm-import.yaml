@@ -1,0 +1,25 @@
+# Phase 4: declarative creation of the wise-k8s application realm.
+# KeycloakRealmImport only creates new realms; it does not update or delete
+# existing ones. After a successful import, changes are made in Keycloak or
+# via additional CRs (e.g. KeycloakOIDCClient), not by editing this CR.
+#
+# Docs: https://www.keycloak.org/operator/realm-import
+apiVersion: k8s.keycloak.org/v2beta1
+kind: KeycloakRealmImport
+metadata:
+  name: wise-k8s-realm
+  namespace: keycloak
+spec:
+  keycloakCRName: keycloak
+  realm:
+    id: wise-k8s
+    realm: wise-k8s
+    displayName: Wise k8s
+    enabled: true
+    sslRequired: external
+    registrationAllowed: false
+    loginWithEmailAllowed: true
+    duplicateEmailsAllowed: false
+    resetPasswordAllowed: true
+    editUsernameAllowed: false
+    bruteForceProtected: true

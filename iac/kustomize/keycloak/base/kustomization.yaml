@@ -7,3 +7,4 @@ resources:
   - ingress.yaml
   - db-credentials-sync.yaml
   - keycloak.yaml
+  - realm-import.yaml
