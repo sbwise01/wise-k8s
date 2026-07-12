@@ -6,6 +6,11 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/hostname: auth.home.bradandmarsha.com
     external-dns.alpha.kubernetes.io/target: home.bradandmarsha.com
+    index.home.bradandmarsha.com/enabled: "true"
+    index.home.bradandmarsha.com/name: "Keycloak"
+    index.home.bradandmarsha.com/image: "https://media.home.bradandmarsha.com/media/keycloak.png"
+    index.home.bradandmarsha.com/description: "OIDC/OAuth2 identity provider for homelab apps"
+    index.home.bradandmarsha.com/weight: "25"
     nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
 spec:
   ingressClassName: nginx
