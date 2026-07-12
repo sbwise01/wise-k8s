@@ -9,6 +9,7 @@ resources:
   - flask-hello-world.yaml
   - ingress-nginx-internal.yaml
   - ingress-nginx-public.yaml
+  - keycloak-cnpg.yaml
   - kube-prometheus-stack.yaml
   - lets-encrypt.yaml
   - media.yaml

@@ -1,0 +1,42 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: keycloak-db
+  namespace: keycloak-cnpg
+spec:
+  instances: 3
+
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.6-standard-trixie
+
+  postgresql:
+    parameters:
+      max_connections: "200"
+      shared_buffers: "256MB"
+
+  minSyncReplicas: 1
+  maxSyncReplicas: 1
+
+  storage:
+    size: 5Gi
+    storageClass: csi-rbd-sc
+
+  # CNPG generates the app-role password into Secret keycloak-db-app
+  # (keys: username, password, dbname, host, port, uri, jdbc-uri, ...).
+  bootstrap:
+    initdb:
+      database: keycloak
+      owner: keycloak
+
+  inheritedMetadata:
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "9187"
+      prometheus.io/path: "/metrics"
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
