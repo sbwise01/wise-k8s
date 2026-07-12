@@ -10,6 +10,8 @@ resources:
   - ingress-nginx-internal.yaml
   - ingress-nginx-public.yaml
   - keycloak-cnpg.yaml
+  - keycloak-operator.yaml
+  - keycloak.yaml
   - kube-prometheus-stack.yaml
   - lets-encrypt.yaml
   - media.yaml

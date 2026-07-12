@@ -1,0 +1,28 @@
+apiVersion: k8s.keycloak.org/v2beta1
+kind: Keycloak
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  instances: 1
+  db:
+    vendor: postgres
+    host: keycloak-db-rw.keycloak-cnpg.svc
+    port: 5432
+    database: keycloak
+    usernameSecret:
+      name: keycloak-db-app
+      key: username
+    passwordSecret:
+      name: keycloak-db-app
+      key: password
+  http:
+    httpEnabled: true
+  hostname:
+    hostname: auth.home.bradandmarsha.com
+    # Phase 2 is internal-only (port-forward). Strict hostname checks resume in Phase 3.
+    strict: false
+  proxy:
+    headers: xforwarded
+  ingress:
+    enabled: false
