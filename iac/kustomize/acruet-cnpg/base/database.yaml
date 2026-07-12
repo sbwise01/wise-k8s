@@ -1,0 +1,11 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: acruet
+  namespace: acruet-cnpg
+spec:
+  name: acruet
+  owner: acruet
+  cluster:
+    name: acruet-db
+  extensions: []

@@ -1,0 +1,42 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: acruet-db
+  namespace: acruet-cnpg
+spec:
+  instances: 3
+
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.6-standard-trixie
+
+  postgresql:
+    parameters:
+      max_connections: "200"
+      shared_buffers: "256MB"
+
+  minSyncReplicas: 1
+  maxSyncReplicas: 1
+
+  storage:
+    size: 20Gi
+    storageClass: csi-rbd-sc
+
+  # CNPG generates the app-role password into Secret acruet-db-app
+  # (keys: username, password, dbname, host, port, uri, jdbc-uri, ...).
+  bootstrap:
+    initdb:
+      database: acruet
+      owner: acruet
+
+  inheritedMetadata:
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "9187"
+      prometheus.io/path: "/metrics"
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi

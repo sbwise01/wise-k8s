@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - aws-iam-oidc-provider.yaml
+  - acruet-cnpg.yaml
   - cert-manager.yaml
   - cloud-native-pg.yaml
   - external-dns.yaml
