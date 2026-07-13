@@ -6,6 +6,11 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/hostname: acruet.home.bradandmarsha.com
     external-dns.alpha.kubernetes.io/target: home.bradandmarsha.com
+    # Tomcat OIDC state lives in pod-local HTTP sessions; pin browsers to one pod.
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: acruet-user-route
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
+    nginx.ingress.kubernetes.io/session-cookie-path: /
     index.home.bradandmarsha.com/enabled: "true"
     index.home.bradandmarsha.com/name: "A Cruet"
     index.home.bradandmarsha.com/image: "https://media.home.bradandmarsha.com/media/acruet.png"
