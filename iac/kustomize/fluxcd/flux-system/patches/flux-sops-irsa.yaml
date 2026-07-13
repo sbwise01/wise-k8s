@@ -1,0 +1,24 @@
+# IRSA for SOPS KMS decryption (wise-k8s/iac/terraform/iam_flux_sops.tf).
+# Applied to operator-managed controller ServiceAccounts via FluxInstance.
+apiVersion: fluxcd.controlplane.io/v1
+kind: FluxInstance
+metadata:
+  name: flux
+  namespace: flux-system
+spec:
+  kustomize:
+    patches:
+      - target:
+          kind: ServiceAccount
+          name: kustomize-controller
+        patch: |
+          - op: add
+            path: /metadata/annotations/eks.amazonaws.com~1role-arn
+            value: arn:aws:iam::712671171381:role/flux-sops
+      - target:
+          kind: ServiceAccount
+          name: helm-controller
+        patch: |
+          - op: add
+            path: /metadata/annotations/eks.amazonaws.com~1role-arn
+            value: arn:aws:iam::712671171381:role/flux-sops

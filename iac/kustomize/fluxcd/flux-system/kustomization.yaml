@@ -7,3 +7,5 @@ resources:
   - certificate.yaml
   - ingress.yaml
   - networkpolicy-flux-web-ingress.yaml
+patches:
+  - path: patches/flux-sops-irsa.yaml
