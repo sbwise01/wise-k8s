@@ -61,6 +61,22 @@ spec:
                 secretKeyRef:
                   name: acruet-db-app
                   key: password
+            - name: ACRUET_OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: acruet-oidc
+                  key: client-id
+            - name: ACRUET_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: acruet-oidc
+                  key: client-secret
+            - name: ACRUET_OIDC_ISSUER
+              value: https://auth.home.bradandmarsha.com/realms/wise-k8s
+            - name: ACRUET_BASE_URL
+              value: https://acruet-admin.home.bradandmarsha.com
+            - name: ACRUET_REQUIRE_ADMIN_ROLE
+              value: "true"
           startupProbe:
             httpGet:
               path: /health

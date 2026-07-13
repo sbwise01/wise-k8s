@@ -1,0 +1,24 @@
+# Service account for a-cruet -> Keycloak Admin API (user provisioning in Phase 6).
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: KeycloakOIDCClient
+metadata:
+  name: acruet-admin
+  namespace: keycloak
+spec:
+  keycloakCRName: keycloak
+  realm: wise-k8s
+  client:
+    displayName: A Cruet Admin API
+    description: Client credentials for signup approval and user management
+    enabled: true
+    loginFlows:
+      - SERVICE_ACCOUNT
+    serviceAccountRoles:
+      - manage-users
+      - view-users
+      - query-users
+    auth:
+      method: client-secret
+      secretRef:
+        name: acruet-admin-oidc-client
+        key: client-secret

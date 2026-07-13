@@ -1,0 +1,25 @@
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: KeycloakOIDCClient
+metadata:
+  name: acruet
+  namespace: keycloak
+spec:
+  keycloakCRName: keycloak
+  realm: wise-k8s
+  client:
+    displayName: A Cruet
+    description: User and admin Tomcat sign-in (authorization code flow)
+    enabled: true
+    loginFlows:
+      - STANDARD
+    redirectUris:
+      - https://acruet.home.bradandmarsha.com/auth/callback
+      - https://acruet-admin.home.bradandmarsha.com/auth/callback
+    webOrigins:
+      - https://acruet.home.bradandmarsha.com
+      - https://acruet-admin.home.bradandmarsha.com
+    auth:
+      method: client-secret
+      secretRef:
+        name: acruet-oidc-client
+        key: client-secret

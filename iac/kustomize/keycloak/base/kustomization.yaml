@@ -8,3 +8,7 @@ resources:
   - db-credentials-sync.yaml
   - keycloak.yaml
   - realm-import.yaml
+  - oidc-client-acruet.yaml
+  - oidc-client-acruet-admin.yaml
+  - secrets/acruet-oidc-client.yaml
+  - secrets/acruet-admin-oidc-client.yaml
