@@ -5,6 +5,9 @@ metadata:
   namespace: keycloak
 spec:
   instances: 1
+  features:
+    enabled:
+      - client-admin-api:v2
   db:
     vendor: postgres
     host: keycloak-db-rw.keycloak-cnpg.svc
