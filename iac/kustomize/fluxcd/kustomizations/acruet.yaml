@@ -1,0 +1,20 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: acruet
+  namespace: flux-system
+spec:
+  interval: 10m0s
+  path: ./iac/kustomize/acruet/overlays
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  decryption:
+    provider: sops
+  dependsOn:
+    - name: acruet-cnpg
+    - name: ingress-nginx-public
+    - name: ingress-nginx-internal
+    - name: cert-manager
+    - name: lets-encrypt

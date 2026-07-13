@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: acruet-user-ingress
+  namespace: acruet
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: acruet.home.bradandmarsha.com
+    external-dns.alpha.kubernetes.io/target: home.bradandmarsha.com
+    index.home.bradandmarsha.com/enabled: "true"
+    index.home.bradandmarsha.com/name: "A Cruet"
+    index.home.bradandmarsha.com/image: "https://media.home.bradandmarsha.com/media/acruet.png"
+    index.home.bradandmarsha.com/description: "Envelope-budgeting web application"
+    index.home.bradandmarsha.com/weight: "15"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - acruet.home.bradandmarsha.com
+      secretName: acruet-user-certificate
+  rules:
+    - host: acruet.home.bradandmarsha.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: acruet-user
+                port:
+                  number: 8080
