@@ -12,3 +12,4 @@ resources:
   - oidc-client-acruet-admin.yaml
   - secrets/acruet-oidc-client.yaml
   - secrets/acruet-admin-oidc-client.yaml
+  - secrets/keycloak-admin.yaml
