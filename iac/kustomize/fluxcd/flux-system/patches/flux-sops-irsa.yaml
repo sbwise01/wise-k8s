@@ -22,3 +22,31 @@ spec:
           - op: add
             path: /metadata/annotations/eks.amazonaws.com~1role-arn
             value: arn:aws:iam::712671171381:role/flux-sops
+      - target:
+          kind: Deployment
+          name: kustomize-controller
+        patch: |
+          - op: add
+            path: /spec/template/spec/containers/0/env/-
+            value:
+              name: AWS_REGION
+              value: us-east-2
+          - op: add
+            path: /spec/template/spec/containers/0/env/-
+            value:
+              name: AWS_DEFAULT_REGION
+              value: us-east-2
+      - target:
+          kind: Deployment
+          name: helm-controller
+        patch: |
+          - op: add
+            path: /spec/template/spec/containers/0/env/-
+            value:
+              name: AWS_REGION
+              value: us-east-2
+          - op: add
+            path: /spec/template/spec/containers/0/env/-
+            value:
+              name: AWS_DEFAULT_REGION
+              value: us-east-2
