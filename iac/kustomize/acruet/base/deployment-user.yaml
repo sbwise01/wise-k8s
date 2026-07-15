@@ -71,8 +71,8 @@ spec:
                 secretKeyRef:
                   name: acruet-oidc
                   key: client-secret
-            - name: ACRUET_OIDC_ISSUER
-              value: https://auth.home.bradandmarsha.com/realms/wise-k8s
+            - name: ACRUET_AUTH_HOST
+              value: auth.home.bradandmarsha.com
             - name: ACRUET_BASE_URL
               value: https://acruet.home.bradandmarsha.com
             - name: ACRUET_MEDIA_HOST
