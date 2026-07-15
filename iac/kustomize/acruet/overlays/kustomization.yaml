@@ -6,6 +6,6 @@ resources:
 
 images:
   - name: sbwise/acruet-user
-    newTag: 1.0.0
+    newTag: 1.1.0
   - name: sbwise/acruet-admin
-    newTag: 1.0.0
+    newTag: 1.1.0
