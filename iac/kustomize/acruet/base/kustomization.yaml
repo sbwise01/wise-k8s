@@ -12,3 +12,4 @@ resources:
   - db-credentials-sync.yaml
   - secrets/acruet-oidc.yaml
   - secrets/acruet-smtp.yaml
+  - secrets/acruet-admin-api.yaml

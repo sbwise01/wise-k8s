@@ -75,8 +75,44 @@ spec:
               value: https://auth.home.bradandmarsha.com/realms/wise-k8s
             - name: ACRUET_BASE_URL
               value: https://acruet-admin.home.bradandmarsha.com
+            - name: ACRUET_MEDIA_HOST
+              value: media.home.bradandmarsha.com
             - name: ACRUET_REQUIRE_ADMIN_ROLE
               value: "true"
+            - name: ACRUET_KEYCLOAK_ADMIN_CLIENT_ID
+              value: acruet-admin
+            - name: ACRUET_KEYCLOAK_ADMIN_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: acruet-admin-api
+                  key: client-secret
+            - name: ACRUET_USER_BASE_URL
+              value: https://acruet.home.bradandmarsha.com
+            - name: ACRUET_SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: acruet-smtp
+                  key: host
+            - name: ACRUET_SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: acruet-smtp
+                  key: port
+            - name: ACRUET_SMTP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: acruet-smtp
+                  key: username
+            - name: ACRUET_SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: acruet-smtp
+                  key: password
+            - name: ACRUET_SMTP_FROM
+              valueFrom:
+                secretKeyRef:
+                  name: acruet-smtp
+                  key: from
           startupProbe:
             httpGet:
               path: /health
