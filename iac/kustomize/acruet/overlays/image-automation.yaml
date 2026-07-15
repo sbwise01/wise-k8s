@@ -1,0 +1,73 @@
+---
+# Applied by this overlay's Flux Kustomization. metadata.namespace: flux-system is
+# set explicitly; the overlay does not set namespace: default (base does, for workloads).
+# ImageUpdateAutomation sourceRef uses the existing flux-system GitRepository.
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: acruet-user
+  namespace: flux-system
+spec:
+  image: sbwise/acruet-user
+  interval: 5m
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: acruet-admin
+  namespace: flux-system
+spec:
+  image: sbwise/acruet-admin
+  interval: 5m
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: acruet-user
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: acruet-user
+  policy:
+    semver:
+      range: ">=1.0.0"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: acruet-admin
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: acruet-admin
+  policy:
+    semver:
+      range: ">=1.0.0"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageUpdateAutomation
+metadata:
+  name: acruet
+  namespace: flux-system
+spec:
+  interval: 5m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        name: fluxcdbot
+        email: fluxcdbot@users.noreply.github.com
+      messageTemplate: |
+        chore(images): bump acruet
+        {{range .Changed.Changes}}- {{.OldValue}} -> {{.NewValue}}
+        {{end}}
+    push:
+      branch: main
+  update:
+    path: ./iac/kustomize/acruet/overlays
+    strategy: Setters
