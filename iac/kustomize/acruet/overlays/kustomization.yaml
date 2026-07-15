@@ -1,12 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 resources:
   - ../base
   - image-automation.yaml
-
 images:
   - name: sbwise/acruet-user
-    newTag: 1.1.0 # {"$imagepolicy": "flux-system:acruet-user:tag"}
+    newTag: 1.1.1 # {"$imagepolicy": "flux-system:acruet-user:tag"}
   - name: sbwise/acruet-admin
-    newTag: 1.1.0 # {"$imagepolicy": "flux-system:acruet-admin:tag"}
+    newTag: 1.1.1 # {"$imagepolicy": "flux-system:acruet-admin:tag"}
