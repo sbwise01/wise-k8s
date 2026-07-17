@@ -13,7 +13,7 @@ metadata:
     nginx.ingress.kubernetes.io/session-cookie-path: /
     index.home.bradandmarsha.com/enabled: "true"
     index.home.bradandmarsha.com/name: "A Cruet"
-    index.home.bradandmarsha.com/image: "https://media.home.bradandmarsha.com/media/acruet.png"
+    index.home.bradandmarsha.com/image: "https://media.home.bradandmarsha.com/media/acruet-bw.jpg"
     index.home.bradandmarsha.com/description: "Envelope-budgeting web application"
     index.home.bradandmarsha.com/weight: "15"
 spec:
