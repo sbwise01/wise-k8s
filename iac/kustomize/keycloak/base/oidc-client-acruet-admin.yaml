@@ -13,7 +13,7 @@ spec:
     enabled: true
     loginFlows:
       - SERVICE_ACCOUNT
-    # realm-management client roles (manage-users, view-users, query-users) cannot be
+    # realm-management client roles (manage-users, view-users, query-users, view-realm) cannot be
     # assigned via serviceAccountRoles yet — Client Admin API v2 only resolves realm
     # roles and this client's own roles. Assign manually after reconcile (DEPLOY.md).
     auth:
