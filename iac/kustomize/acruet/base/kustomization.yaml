@@ -3,14 +3,15 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
+  - admin-ops-cron.yaml
   - certificate-user.yaml
   - certificate-admin.yaml
+  - db-credentials-sync.yaml
   - deployment-user.yaml
   - deployment-admin.yaml
   - ingress-user.yaml
   - ingress-admin.yaml
-  - db-credentials-sync.yaml
-  - secrets/acruet-oidc.yaml
-  - secrets/acruet-smtp.yaml
   - secrets/acruet-admin-api.yaml
   - secrets/acruet-cron.yaml
+  - secrets/acruet-oidc.yaml
+  - secrets/acruet-smtp.yaml

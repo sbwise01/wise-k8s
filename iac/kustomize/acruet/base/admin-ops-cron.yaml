@@ -1,0 +1,99 @@
+# Phase 11 admin ops CronJobs — auto-unsuspend, offboard purge, anomaly alert sweep.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: acruet-admin-unsuspend
+  namespace: acruet
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: curl
+              image: curlimages/curl:8.5.0
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: ACRUET_CRON_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: acruet-cron
+                      key: secret
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  curl -fsS -X POST \
+                    -H "X-Acruet-Cron-Secret: ${ACRUET_CRON_SECRET}" \
+                    http://acruet-admin.acruet.svc:8080/internal/cron/unsuspend
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: acruet-admin-purge-offboard
+  namespace: acruet
+spec:
+  schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: curl
+              image: curlimages/curl:8.5.0
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: ACRUET_CRON_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: acruet-cron
+                      key: secret
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  curl -fsS -X POST \
+                    -H "X-Acruet-Cron-Secret: ${ACRUET_CRON_SECRET}" \
+                    http://acruet-admin.acruet.svc:8080/internal/cron/purge-offboard
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: acruet-admin-anomaly-alerts
+  namespace: acruet
+spec:
+  schedule: "*/30 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: curl
+              image: curlimages/curl:8.5.0
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: ACRUET_CRON_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: acruet-cron
+                      key: secret
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  curl -fsS -X POST \
+                    -H "X-Acruet-Cron-Secret: ${ACRUET_CRON_SECRET}" \
+                    http://acruet-admin.acruet.svc:8080/internal/cron/anomaly-alerts
