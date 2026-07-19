@@ -113,6 +113,13 @@ spec:
                 secretKeyRef:
                   name: acruet-smtp
                   key: from
+            - name: ACRUET_CRON_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: acruet-cron
+                  key: secret
+            - name: ACRUET_ADMIN_ALERT_EMAILS
+              value: "brad@bradandmarsha.com"
           startupProbe:
             httpGet:
               path: /health

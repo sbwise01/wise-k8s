@@ -13,3 +13,4 @@ resources:
   - secrets/acruet-oidc.yaml
   - secrets/acruet-smtp.yaml
   - secrets/acruet-admin-api.yaml
+  - secrets/acruet-cron.yaml
