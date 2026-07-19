@@ -3,6 +3,10 @@
 # existing ones. After a successful import, changes are made in Keycloak or
 # via additional CRs (e.g. KeycloakOIDCClient), not by editing this CR.
 #
+# SMTP: spec.realm.smtpServer credentials are injected from secrets/keycloak-smtp.yaml
+# via kustomize replacements (see kustomization.yaml). Existing clusters: configure
+# Realm settings → Email in the admin console to match; import is create-only.
+#
 # Docs: https://www.keycloak.org/operator/realm-import
 apiVersion: k8s.keycloak.org/v2beta1
 kind: KeycloakRealmImport
@@ -23,3 +27,13 @@ spec:
     resetPasswordAllowed: true
     editUsernameAllowed: false
     bruteForceProtected: true
+    smtpServer:
+      host: smtp.protonmail.ch
+      port: "587"
+      from: acruet@bradandmarsha.com
+      fromDisplayName: Brad Wise
+      starttls: "true"
+      auth: "true"
+      ssl: "false"
+      user: acruet@bradandmarsha.com
+      password: ""

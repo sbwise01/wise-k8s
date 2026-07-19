@@ -13,3 +13,56 @@ resources:
   - secrets/acruet-oidc-client.yaml
   - secrets/acruet-admin-oidc-client.yaml
   - secrets/keycloak-admin.yaml
+  - secrets/keycloak-smtp.yaml
+
+replacements:
+  - source:
+      kind: Secret
+      name: keycloak-smtp
+      fieldPath: stringData.host
+    targets:
+      - select:
+          kind: KeycloakRealmImport
+          name: wise-k8s-realm
+        fieldPaths:
+          - spec.realm.smtpServer.host
+  - source:
+      kind: Secret
+      name: keycloak-smtp
+      fieldPath: stringData.port
+    targets:
+      - select:
+          kind: KeycloakRealmImport
+          name: wise-k8s-realm
+        fieldPaths:
+          - spec.realm.smtpServer.port
+  - source:
+      kind: Secret
+      name: keycloak-smtp
+      fieldPath: stringData.from
+    targets:
+      - select:
+          kind: KeycloakRealmImport
+          name: wise-k8s-realm
+        fieldPaths:
+          - spec.realm.smtpServer.from
+  - source:
+      kind: Secret
+      name: keycloak-smtp
+      fieldPath: stringData.username
+    targets:
+      - select:
+          kind: KeycloakRealmImport
+          name: wise-k8s-realm
+        fieldPaths:
+          - spec.realm.smtpServer.user
+  - source:
+      kind: Secret
+      name: keycloak-smtp
+      fieldPath: stringData.password
+    targets:
+      - select:
+          kind: KeycloakRealmImport
+          name: wise-k8s-realm
+        fieldPaths:
+          - spec.realm.smtpServer.password
