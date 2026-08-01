@@ -9,6 +9,7 @@ metadata:
     name: plex-plex-media-server
   name: plex-plex-media-server
 spec:
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app.kubernetes.io/instance: plex

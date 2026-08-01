@@ -18,6 +18,7 @@ metadata:
   name: route53-ddns
   namespace: route53-ddns
 spec:
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: route53-ddns

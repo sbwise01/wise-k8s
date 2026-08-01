@@ -22,6 +22,7 @@ metadata:
     version: v1
 spec:
   replicas: 2
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: acruet-user
