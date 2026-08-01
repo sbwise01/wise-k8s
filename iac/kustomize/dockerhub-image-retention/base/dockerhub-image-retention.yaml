@@ -50,7 +50,7 @@ metadata:
   namespace: dockerhub-image-retention
 data:
   config.yaml: |
-    dryRun: true
+    dryRun: false
     retention:
       majors: 3
       minors: 3
