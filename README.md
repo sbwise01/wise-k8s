@@ -13,3 +13,4 @@ Repository to house manifests and applications hosted in the wise-k8s homelab
 5. migrate ci workflows and cd workflows to use cluster runners
 6. add new app to perform image retention in dockerhub
 7. least privs for terraform
+8. replace custom cronjobs with generalized reflector impelementation
