@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../base
+  - image-automation.yaml
+images:
+  - name: sbwise/dockerhub-image-retention
+    newTag: 1.0.0 # {"$imagepolicy": "flux-system:dockerhub-image-retention:tag"}

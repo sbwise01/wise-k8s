@@ -1,0 +1,49 @@
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: dockerhub-image-retention
+  namespace: flux-system
+spec:
+  image: sbwise/dockerhub-image-retention
+  interval: 5m
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: dockerhub-image-retention
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: dockerhub-image-retention
+  policy:
+    semver:
+      range: ">=1.0.0"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageUpdateAutomation
+metadata:
+  name: dockerhub-image-retention
+  namespace: flux-system
+spec:
+  interval: 5m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        name: fluxcdbot
+        email: fluxcdbot@users.noreply.github.com
+      messageTemplate: |
+        chore(images): bump dockerhub-image-retention
+        {{range .Changed.Changes}}- {{.OldValue}} -> {{.NewValue}}
+        {{end}}
+    push:
+      branch: main
+  update:
+    path: ./iac/kustomize/dockerhub-image-retention/overlays
+    strategy: Setters

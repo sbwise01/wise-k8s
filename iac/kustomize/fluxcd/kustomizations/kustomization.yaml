@@ -23,4 +23,5 @@ resources:
   - pod-identity-webhook.yaml
   - rook.yaml
   - route53-ddns.yaml
+  - dockerhub-image-retention.yaml
   - wise-home-index.yaml

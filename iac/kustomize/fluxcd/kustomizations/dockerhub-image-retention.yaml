@@ -1,0 +1,12 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: dockerhub-image-retention
+  namespace: flux-system
+spec:
+  interval: 10m0s
+  path: ./iac/kustomize/dockerhub-image-retention/overlays
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system

@@ -1,0 +1,109 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dockerhub-image-retention
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dockerhub-image-retention
+  namespace: dockerhub-image-retention
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::712671171381:role/dockerhub-image-retention
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dockerhub-image-retention
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs: ["get", "list"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dockerhub-image-retention
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: dockerhub-image-retention
+subjects:
+  - kind: ServiceAccount
+    name: dockerhub-image-retention
+    namespace: dockerhub-image-retention
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dockerhub-image-retention-config
+  namespace: dockerhub-image-retention
+data:
+  config.yaml: |
+    dryRun: true
+    retention:
+      majors: 3
+      minors: 3
+      patches: 5
+    repositories:
+      - name: sbwise/acruet-user
+        keepTags: []
+      - name: sbwise/acruet-admin
+        keepTags: []
+      - name: sbwise/wise-home-index
+        keepTags: []
+      - name: sbwise/route53-ddns
+        keepTags: []
+      - name: sbwise/pms-docker
+        keepTags: []
+      - name: sbwise/dockerhub-image-retention
+        keepTags: []
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dockerhub-image-retention
+  namespace: dockerhub-image-retention
+spec:
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: dockerhub-image-retention
+          restartPolicy: OnFailure
+          containers:
+            - name: dockerhub-image-retention
+              image: sbwise/dockerhub-image-retention:1.0.0
+              imagePullPolicy: IfNotPresent
+              resources:
+                limits:
+                  memory: 256Mi
+                  cpu: 200m
+              env:
+                - name: AWS_REGION
+                  value: us-east-2
+                - name: CONFIG_PATH
+                  value: /config/config.yaml
+                - name: SSM_USERNAME_PARAM
+                  value: /dockerhub/api/username
+                - name: SSM_TOKEN_PARAM
+                  value: /dockerhub/api/token
+              volumeMounts:
+                - name: config
+                  mountPath: /config
+                  readOnly: true
+          volumes:
+            - name: config
+              configMap:
+                name: dockerhub-image-retention-config
