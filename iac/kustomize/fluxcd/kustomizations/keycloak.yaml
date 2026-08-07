@@ -4,7 +4,15 @@ metadata:
   name: keycloak
   namespace: flux-system
 spec:
-  interval: 10m0s
+  # Each reconcile Decrypts every SOPS secret via KMS (alias/sops). Idle
+  # polling volume ≈ secrets × reconciles/month; free tier is 20k req/month.
+  # With 4 secrets here + 4 in acruet (~8 total), approximate Decrypt load:
+  #   10m → ~34k/month (exceeds free tier)
+  #   30m → ~12k/month
+  #   1h  → ~6k/month  ← chosen
+  # Git pushes still reconcile immediately; this only slows idle polls.
+  # Longer-term option: switch Flux decryption to age (no KMS on reconcile).
+  interval: 1h0s
   path: ./iac/kustomize/keycloak/overlays
   prune: true
   sourceRef:
