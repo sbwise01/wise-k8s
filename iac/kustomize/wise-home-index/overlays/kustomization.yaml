@@ -5,7 +5,7 @@ resources:
   - image-automation.yaml
 images:
   - name: sbwise/wise-home-index
-    newTag: 2.2.1 # {"$imagepolicy": "flux-system:wise-home-index:tag"}
+    newTag: 2.3.0 # {"$imagepolicy": "flux-system:wise-home-index:tag"}
 patches:
   - target:
       kind: Deployment
