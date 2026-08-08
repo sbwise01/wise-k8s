@@ -12,7 +12,8 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
-  # MetalLB not required until Phase 2 Gateways create LoadBalancer Services;
-  # depend anyway so edge stack order is explicit in Flux.
+  # MetalLB assigns VIP for Gateway LoadBalancer Services; cert-manager issues
+  # the placeholder edge TLS secret used by HTTPS listeners.
   dependsOn:
     - name: metal-lb
+    - name: cert-manager

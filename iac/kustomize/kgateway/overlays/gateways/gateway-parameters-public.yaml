@@ -1,0 +1,12 @@
+apiVersion: gateway.kgateway.dev/v1alpha1
+kind: GatewayParameters
+metadata:
+  name: gateway-public
+  namespace: kgateway-system
+spec:
+  kube:
+    service:
+      type: LoadBalancer
+      externalTrafficPolicy: Local
+      extraAnnotations:
+        metallb.io/address-pool: home-pool
