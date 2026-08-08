@@ -14,6 +14,7 @@ resources:
   - keycloak-cnpg.yaml
   - keycloak-operator.yaml
   - keycloak.yaml
+  - kgateway.yaml
   - kube-prometheus-stack.yaml
   - lets-encrypt.yaml
   - media.yaml

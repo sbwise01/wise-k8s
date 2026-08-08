@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Vendored from official Helm charts (not installed via HelmRelease):
+#   oci://cr.kgateway.dev/kgateway-dev/charts/kgateway-crds:2.4.2
+#   oci://cr.kgateway.dev/kgateway-dev/charts/kgateway:2.4.2
+# Digests at vendor time:
+#   kgateway-crds  sha256:d5fd956f728a5181e58eeae03c9f8b66a3f74359d6cdf7c615df954fb407d48c
+#   kgateway       sha256:a61975913d73c19501dc65ecfeab52679e911dfecaf5ece610d2312828167f75
+#
+# Re-vendor / bump:
+#   mkdir -p base/<ver>/source
+#   helm template kgateway-crds oci://cr.kgateway.dev/kgateway-dev/charts/kgateway-crds \
+#     --version <ver> --namespace kgateway-system > base/<ver>/source/kgateway-crds.yaml
+#   helm template kgateway oci://cr.kgateway.dev/kgateway-dev/charts/kgateway \
+#     --version <ver> --namespace kgateway-system \
+#     --set controller.replicaCount=1 \
+#     --set controller.resources.requests.cpu=50m \
+#     --set controller.resources.requests.memory=128Mi \
+#     --set controller.resources.limits.memory=512Mi \
+#     > base/<ver>/source/kgateway.yaml
+#   Point overlays at the new base/<ver> directory.
+#
+# GatewayClass "kgateway" is created by the controller at runtime (not in chart YAML).
+
+resources:
+  - namespace.yaml
+  - ../gateway-api
+  - source/kgateway-crds.yaml
+  - source/kgateway.yaml

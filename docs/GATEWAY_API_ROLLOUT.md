@@ -2,7 +2,7 @@
 
 Replace **ingress-nginx** (public + internal) with **Kubernetes Gateway API** using **[kgateway](https://kgateway.dev/)** as the control plane, keeping **MetalLB layer-2** as the on-LAN VIP advertisement for both public and internal edge traffic.
 
-**Status:** ⬜ Not started — decisions below are **locked for planning**; revise only via PR before Phase 1 begins.
+**Status:** Phase 1 in progress — decisions below are **locked**; revise only via PR.
 
 **README backlog:** [To Do #1](../README.md) — *Replace Ingress' with Gateway API*.
 
@@ -56,7 +56,8 @@ DNS (unchanged model)
 | # | Decision | Choice |
 |---|----------|--------|
 | 1 | Control plane | **kgateway** (`GatewayClass` name expected: `kgateway`) |
-| 2 | Install model | GitOps in `wise-k8s` — Gateway API CRDs + kgateway CRDs + HelmRelease (or vendored manifests), Flux-managed namespace `kgateway-system` |
+| 2 | Install model | GitOps in `wise-k8s` — **vendored YAML only** (Gateway API CRDs + `helm template` output of kgateway charts); Flux `Kustomization`, namespace `kgateway-system`. No live `HelmRelease`. |
+| 2a | Pinned versions | Gateway API **v1.6.1** (standard channel); kgateway / kgateway-crds charts **2.4.2** (rendered into `iac/kustomize/kgateway/base/2.4.2/source/`) |
 | 3 | Edge topology | **Two Gateways**: `gateway-public` (pool `home-pool`) and `gateway-internal` (pool `home-pool-internal`) |
 | 4 | MetalLB integration | Gateways create `Service` type `LoadBalancer`; annotate with `metallb.io/address-pool`; prefer `externalTrafficPolicy: Local` (match ingress-nginx) |
 | 5 | Dual-run strategy | **Expand → migrate → contract** — kgateway alongside ingress-nginx until all routes cut over |
@@ -151,7 +152,7 @@ If a feature has no clean Gateway equivalent, document a temporary exception and
 | Phase | Status |
 |-------|--------|
 | 0 — Decisions & inventory | ✅ Locked in this doc |
-| 1 — Deploy kgateway + Gateway API CRDs (no traffic) | ⬜ |
+| 1 — Deploy kgateway + Gateway API CRDs (no traffic) | 🟨 Manifests ready — merge & verify on cluster |
 | 2 — MetalLB-backed public/internal Gateways + smoke test | ⬜ |
 | 3 — Canary: flask-hello-world on Gateway API | ⬜ |
 | 4 — external-dns Gateway sources + dual-publish strategy | ⬜ |
@@ -167,13 +168,13 @@ If a feature has no clean Gateway equivalent, document a temporary exception and
 
 ### Deliverables
 
-1. Flux kustomization(s), e.g. `iac/kustomize/kgateway/` + `fluxcd/kustomizations/kgateway.yaml`.
-2. Install order (GitOps):
-   - Kubernetes **Gateway API** standard CRDs (pin a version compatible with chosen kgateway release).
-   - **kgateway CRDs** chart (`kgateway-crds`).
-   - **kgateway** control plane chart (namespace `kgateway-system`).
-3. Confirm `GatewayClass` `kgateway` exists and controller pods healthy.
-4. Flux `dependsOn`: `kgateway` → (optional) after `metal-lb` for clarity.
+1. ✅ `iac/kustomize/kgateway/` + `fluxcd/kustomizations/kgateway.yaml` (`dependsOn: metal-lb`).
+2. ✅ Install order (declarative / vendored — no HelmRelease):
+   - Kubernetes **Gateway API** standard CRDs **v1.6.1** (`base/gateway-api/`).
+   - **kgateway-crds** + **kgateway** chart **2.4.2** rendered with `helm template` into `base/2.4.2/source/`.
+   - Re-vendor steps documented in `base/2.4.2/kustomization.yaml`.
+3. ⬜ Confirm `GatewayClass` `kgateway` exists (created by controller at runtime) and pods healthy after Flux reconcile.
+4. ✅ Flux `dependsOn: metal-lb`.
 
 ### Verify
 
