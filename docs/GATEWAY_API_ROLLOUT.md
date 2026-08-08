@@ -2,7 +2,7 @@
 
 Replace **ingress-nginx** (public + internal) with **Kubernetes Gateway API** using **[kgateway](https://kgateway.dev/)** as the control plane, keeping **MetalLB layer-2** as the on-LAN VIP advertisement for both public and internal edge traffic.
 
-**Status:** Phase 2 in progress (2026-08-08) — decisions below are **locked**; revise only via PR.
+**Status:** Phase 2 ✅ complete (2026-08-08) — decisions below are **locked**; revise only via PR.
 
 **README backlog:** [To Do #1](../README.md) — *Replace Ingress' with Gateway API*.
 
@@ -153,7 +153,7 @@ If a feature has no clean Gateway equivalent, document a temporary exception and
 |-------|--------|
 | 0 — Decisions & inventory | ✅ Locked in this doc |
 | 1 — Deploy kgateway + Gateway API CRDs (no traffic) | ✅ Complete (2026-08-08) — Flux Ready; GatewayClass Accepted; no edge LB |
-| 2 — MetalLB-backed public/internal Gateways + smoke test | 🔄 In progress (2026-08-08) |
+| 2 — MetalLB-backed public/internal Gateways + smoke test | ✅ Complete (2026-08-08) — public `.217`, internal `.236`; nginx `.216`/`.235` unchanged |
 | 3 — Canary: flask-hello-world on Gateway API | ⬜ |
 | 4 — external-dns Gateway sources + dual-publish strategy | ⬜ |
 | 5 — Convert remaining Ingresses (Waves B–D) | ⬜ |
@@ -260,15 +260,17 @@ If DNS curls regress or nginx VIPs change unexpectedly → delete the Gateways (
    - HTTP→HTTPS redirect is **per-HTTPRoute** (`RequestRedirect`); added with app routes in Phase 3+, not as a Gateway-level filter
 3. ✅ `Gateway` `gateway-internal` with pool `home-pool-internal` (same listener/TLS pattern).
 4. ✅ Placeholder `Issuer`/`Certificate` `gateway-edge-tls` (self-signed) for HTTPS smoke; real LE secrets in Phase 3+.
-5. ⬜ Document assigned VIPs below once MetalLB allocates them.
+5. ✅ Document assigned VIPs below.
 6. Optional later: pin IPs via Gateway `spec.addresses` or MetalLB annotations **only** after confirming kgateway propagates them to the proxy Service.
 
-**Assigned VIPs (fill after reconcile)**
+**Assigned VIPs (dual-run, 2026-08-08)**
 
 | Gateway | Pool | EXTERNAL-IP |
 |---------|------|-------------|
-| `gateway-public` | `home-pool` | _TBD_ |
-| `gateway-internal` | `home-pool-internal` | _TBD_ |
+| `gateway-public` | `home-pool` | `192.168.40.217` |
+| `gateway-internal` | `home-pool-internal` | `192.168.40.236` |
+
+ingress-nginx still holds `192.168.40.216` (public) and `192.168.40.235` (internal).
 
 ### Verify
 
@@ -278,12 +280,14 @@ kubectl get svc -n kgateway-system   # LoadBalancer EXTERNAL-IPs from correct po
 # From a LAN host: ARP / curl -k https://<public-vip>/  (expect no route / 404, not timeout)
 ```
 
+**Verified 2026-08-08:** Both Gateways Programmed/Accepted; proxy pods Running; LBs use correct pools + `externalTrafficPolicy: Local`; VIP HTTPS/HTTP return 404 (no routes yet); DNS curls still hit nginx (200/302/200).
+
 ### Exit criteria
 
-- Public VIP ∈ `192.168.40.216–234` and **≠** current nginx VIP while dual-running.
-- Internal VIP ∈ `192.168.40.235–253` and **≠** nginx-internal VIP while dual-running.
-- L2Advertisement still only those two pools (no BGP).
-- Existing DNS hostnames still served by ingress-nginx (non-impact checks).
+- ✅ Public VIP ∈ `192.168.40.216–234` and **≠** nginx `.216` while dual-running (`.217`).
+- ✅ Internal VIP ∈ `192.168.40.235–253` and **≠** nginx-internal `.235` (`.236`).
+- ✅ L2Advertisement still only those two pools (no BGP).
+- ✅ Existing DNS hostnames still served by ingress-nginx (non-impact checks).
 
 ---
 
