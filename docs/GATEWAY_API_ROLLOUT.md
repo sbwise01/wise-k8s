@@ -2,7 +2,7 @@
 
 Replace **ingress-nginx** (public + internal) with **Kubernetes Gateway API** using **[kgateway](https://kgateway.dev/)** as the control plane, keeping **MetalLB layer-2** as the on-LAN VIP advertisement for both public and internal edge traffic.
 
-**Status:** Phase 2 ✅ complete (2026-08-08) — decisions below are **locked**; revise only via PR.
+**Status:** Phase 3 expand in progress (2026-08-08) — decisions below are **locked**; revise only via PR.
 
 **README backlog:** [To Do #1](../README.md) — *Replace Ingress' with Gateway API*.
 
@@ -154,7 +154,7 @@ If a feature has no clean Gateway equivalent, document a temporary exception and
 | 0 — Decisions & inventory | ✅ Locked in this doc |
 | 1 — Deploy kgateway + Gateway API CRDs (no traffic) | ✅ Complete (2026-08-08) — Flux Ready; GatewayClass Accepted; no edge LB |
 | 2 — MetalLB-backed public/internal Gateways + smoke test | ✅ Complete (2026-08-08) — public `.217`, internal `.236`; nginx `.216`/`.235` unchanged |
-| 3 — Canary: flask-hello-world on Gateway API | ⬜ |
+| 3 — Canary: flask-hello-world on Gateway API | 🔄 Expand in progress (2026-08-08) — Ingress kept until VIP/`--resolve` OK |
 | 4 — external-dns Gateway sources + dual-publish strategy | ⬜ |
 | 5 — Convert remaining Ingresses (Waves B–D) | ⬜ |
 | 6 — Contract: remove Ingresses, ingress-nginx, dead deps | ⬜ |
@@ -297,27 +297,40 @@ kubectl get svc -n kgateway-system   # LoadBalancer EXTERNAL-IPs from correct po
 
 ### Expand
 
-1. Add `HTTPRoute` (and any ReferenceGrant if cross-namespace) for `flask-hello-world.home.bradandmarsha.com` → Service `flask-hello-world:5000`.
-2. Attach existing TLS secret `certificate-flask-hello-world` to the public Gateway listener (or listener hostname entry).
-3. Keep existing `Ingress` **until** canary verification passes (dual-run).
+1. ✅ `HTTPRoute` `flask-hello-world` → Service `flask-hello-world:5000` (`parentRefs` → `gateway-public` / `https-flask-hello-world`).
+2. ✅ `HTTPRoute` `flask-hello-world-https-redirect` on listener `http` (`RequestRedirect` → https).
+3. ✅ Hostname-scoped HTTPS listener on `gateway-public` + `ReferenceGrant` in `default` for Secret `certificate-flask-hello-world`.
+4. ✅ Keep existing `Ingress` during dual-run (DNS / external-dns still owned by Ingress until Phase 4).
+5. ✅ Flux `flask-hello-world` `dependsOn: kgateway`.
 
-### Test plan
+### Canary recipe (copy for later apps)
+
+| Piece | Where |
+|-------|--------|
+| `GatewayParameters` + MetalLB pool / `externalTrafficPolicy: Local` | Already on `gateway-public` / `gateway-internal` (Phase 2) |
+| Hostname HTTPS listener + `certificateRefs` (cross-ns Secret) | `gateway-public` listener + app-ns `ReferenceGrant` |
+| App `HTTPRoute` (HTTPS) + optional HTTP→HTTPS redirect `HTTPRoute` | App kustomize |
+| Leave `Ingress` until `--resolve` (and later DNS) verified | Dual-run |
+
+### Test plan (expand — before Ingress removal)
 
 - [ ] `kubectl get httproute -n default` Accepted / ResolvedRefs
-- [ ] `curl -vk --resolve flask-hello-world.home.bradandmarsha.com:443:<gateway-public-vip> https://flask-hello-world.home.bradandmarsha.com/`
-- [ ] TLS cert matches Let’s Encrypt secret
-- [ ] Index / health behavior unchanged vs nginx path
-- [ ] After DNS cutover (Phase 4): public DNS resolves; browser OK from WAN and LAN
+- [ ] `curl -vk --resolve flask-hello-world.home.bradandmarsha.com:443:192.168.40.217 https://flask-hello-world.home.bradandmarsha.com/`
+- [ ] TLS cert is Let’s Encrypt (not the placeholder self-signed edge cert)
+- [ ] Body / health matches nginx DNS path
+- [ ] DNS path still hits nginx (unchanged) until Phase 4 cutover
 
-### Contract (canary only)
+### Contract (canary only — after expand verify)
 
-- Remove flask-hello-world `Ingress` (+ Flux deps if any).
+- Remove flask-hello-world `Ingress` (+ move index annotations to `HTTPRoute` if needed).
 - Leave Certificate CR in place.
+- Prefer short soak after DNS cutover (Phase 4); a full day is optional for this low-risk app.
 
 ### Exit criteria
 
-- Canary serves **only** via Gateway for ≥1 day with no rollback.
-- Document kgateway + MetalLB annotation recipe used (copy for later apps).
+- Expand: Gateway VIP `--resolve` serves canary with correct LE cert; nginx DNS path still healthy.
+- After Phase 4 DNS cutover + Ingress contract: canary Gateway-only with no rollback (hours of soak OK; ≥1 day optional).
+- Recipe table above stays the template for Wave B+.
 
 ---
 
