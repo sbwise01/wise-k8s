@@ -17,6 +17,7 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    # Hostname-agnostic placeholder (self-signed) for L2 smoke / unmatched SNI.
     - name: https
       protocol: HTTPS
       port: 443
@@ -24,6 +25,21 @@ spec:
         mode: Terminate
         certificateRefs:
           - name: gateway-edge-tls
+            kind: Secret
+            group: ""
+      allowedRoutes:
+        namespaces:
+          from: All
+    # Phase 3 canary — Let's Encrypt secret lives in default (see ReferenceGrant there).
+    - name: https-flask-hello-world
+      protocol: HTTPS
+      port: 443
+      hostname: flask-hello-world.home.bradandmarsha.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: certificate-flask-hello-world
+            namespace: default
             kind: Secret
             group: ""
       allowedRoutes:

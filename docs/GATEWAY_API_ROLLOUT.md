@@ -2,7 +2,7 @@
 
 Replace **ingress-nginx** (public + internal) with **Kubernetes Gateway API** using **[kgateway](https://kgateway.dev/)** as the control plane, keeping **MetalLB layer-2** as the on-LAN VIP advertisement for both public and internal edge traffic.
 
-**Status:** Phase 2 ✅ complete (2026-08-08) — decisions below are **locked**; revise only via PR.
+**Status:** Phase 3 expand in progress (2026-08-08) — decisions below are **locked**; revise only via PR.
 
 **README backlog:** [To Do #1](../README.md) — *Replace Ingress' with Gateway API*.
 
@@ -62,7 +62,7 @@ DNS (unchanged model)
 | 4 | MetalLB integration | Gateways create `Service` type `LoadBalancer`; annotate with `metallb.io/address-pool`; prefer `externalTrafficPolicy: Local` (match ingress-nginx) |
 | 5 | Dual-run strategy | **Expand → migrate → contract** — kgateway alongside ingress-nginx until all routes cut over |
 | 6 | Canary app | **flask-hello-world** (simple public Ingress, no nginx-specific annotations) |
-| 7 | TLS | Keep existing per-app `Certificate` CRs (Let’s Encrypt DNS-01). Phase 2 Gateways use a **placeholder self-signed** secret (`gateway-edge-tls` in `kgateway-system`) on a hostname-agnostic HTTPS listener so L2/HTTPS smoke works. Phase 3+ attaches real secrets via **hostname-scoped HTTPS listeners** (one listener per host + cert). |
+| 7 | TLS (interim → target) | **Interim (Phases 3–7):** keep per-app Let’s Encrypt `Certificate` CRs; attach via **hostname-scoped HTTPS listeners** (one listener per host + cert), plus Phase 2 placeholder `gateway-edge-tls`. **Target (Phase 8):** platform-owned wildcard `*.home.bradandmarsha.com` (and apex `home.bradandmarsha.com` — wildcards do not cover the apex) on stable Gateway HTTPS listeners so **new apps need only an `HTTPRoute`**, not a Gateway edit — Gateway API [separation of duties](https://gateway-api.sigs.k8s.io/concepts/security/) (infra owns Gateway; apps own Routes). |
 | 8 | DNS cutover | Enable external-dns **`gateway-httproute`** (and RBAC) before deleting Ingresses; keep public CNAME→apex pattern where used today |
 | 9 | Public VIP cutover | During dual-run, public Gateway gets a **new** IP from `home-pool` (do **not** steal `192.168.40.216` while nginx still holds it). Final cutover: move router DNAT / reclaim `.216` for Gateway **or** leave Gateway on new VIP and point router at it — pick one in Phase 5 checklist |
 | 10 | Out of scope (v1) | HTTP-01 challenges, IPv6 dual-stack, replacing MetalLB, EnvoyFilter/advanced mesh, merging public+internal into one Gateway |
@@ -154,11 +154,12 @@ If a feature has no clean Gateway equivalent, document a temporary exception and
 | 0 — Decisions & inventory | ✅ Locked in this doc |
 | 1 — Deploy kgateway + Gateway API CRDs (no traffic) | ✅ Complete (2026-08-08) — Flux Ready; GatewayClass Accepted; no edge LB |
 | 2 — MetalLB-backed public/internal Gateways + smoke test | ✅ Complete (2026-08-08) — public `.217`, internal `.236`; nginx `.216`/`.235` unchanged |
-| 3 — Canary: flask-hello-world on Gateway API | ⬜ |
+| 3 — Canary: flask-hello-world on Gateway API | 🔄 Expand in progress (2026-08-08) — Ingress kept until VIP/`--resolve` OK |
 | 4 — external-dns Gateway sources + dual-publish strategy | ⬜ |
 | 5 — Convert remaining Ingresses (Waves B–D) | ⬜ |
 | 6 — Contract: remove Ingresses, ingress-nginx, dead deps | ⬜ |
 | 7 — Docs / README / KEYCLOAK.md VIP references | ⬜ |
+| 8 — Wildcard TLS + freeze Gateway listeners (SoD) | ⬜ |
 
 ---
 
@@ -297,27 +298,40 @@ kubectl get svc -n kgateway-system   # LoadBalancer EXTERNAL-IPs from correct po
 
 ### Expand
 
-1. Add `HTTPRoute` (and any ReferenceGrant if cross-namespace) for `flask-hello-world.home.bradandmarsha.com` → Service `flask-hello-world:5000`.
-2. Attach existing TLS secret `certificate-flask-hello-world` to the public Gateway listener (or listener hostname entry).
-3. Keep existing `Ingress` **until** canary verification passes (dual-run).
+1. ✅ `HTTPRoute` `flask-hello-world` → Service `flask-hello-world:5000` (`parentRefs` → `gateway-public` / `https-flask-hello-world`).
+2. ✅ `HTTPRoute` `flask-hello-world-https-redirect` on listener `http` (`RequestRedirect` → https).
+3. ✅ Hostname-scoped HTTPS listener on `gateway-public` + `ReferenceGrant` in `default` for Secret `certificate-flask-hello-world`.
+4. ✅ Keep existing `Ingress` during dual-run (DNS / external-dns still owned by Ingress until Phase 4).
+5. ✅ Flux `flask-hello-world` `dependsOn: kgateway`.
 
-### Test plan
+### Canary recipe (copy for later apps)
+
+| Piece | Where |
+|-------|--------|
+| `GatewayParameters` + MetalLB pool / `externalTrafficPolicy: Local` | Already on `gateway-public` / `gateway-internal` (Phase 2) |
+| Hostname HTTPS listener + `certificateRefs` (cross-ns Secret) | `gateway-public` listener + app-ns `ReferenceGrant` (**interim** until Phase 8 wildcard) |
+| App `HTTPRoute` (HTTPS) + optional HTTP→HTTPS redirect `HTTPRoute` | App kustomize |
+| Leave `Ingress` until `--resolve` (and later DNS) verified | Dual-run |
+
+### Test plan (expand — before Ingress removal)
 
 - [ ] `kubectl get httproute -n default` Accepted / ResolvedRefs
-- [ ] `curl -vk --resolve flask-hello-world.home.bradandmarsha.com:443:<gateway-public-vip> https://flask-hello-world.home.bradandmarsha.com/`
-- [ ] TLS cert matches Let’s Encrypt secret
-- [ ] Index / health behavior unchanged vs nginx path
-- [ ] After DNS cutover (Phase 4): public DNS resolves; browser OK from WAN and LAN
+- [ ] `curl -vk --resolve flask-hello-world.home.bradandmarsha.com:443:192.168.40.217 https://flask-hello-world.home.bradandmarsha.com/`
+- [ ] TLS cert is Let’s Encrypt (not the placeholder self-signed edge cert)
+- [ ] Body / health matches nginx DNS path
+- [ ] DNS path still hits nginx (unchanged) until Phase 4 cutover
 
-### Contract (canary only)
+### Contract (canary only — after expand verify)
 
-- Remove flask-hello-world `Ingress` (+ Flux deps if any).
+- Remove flask-hello-world `Ingress` (+ move index annotations to `HTTPRoute` if needed).
 - Leave Certificate CR in place.
+- Prefer short soak after DNS cutover (Phase 4); a full day is optional for this low-risk app.
 
 ### Exit criteria
 
-- Canary serves **only** via Gateway for ≥1 day with no rollback.
-- Document kgateway + MetalLB annotation recipe used (copy for later apps).
+- Expand: Gateway VIP `--resolve` serves canary with correct LE cert; nginx DNS path still healthy.
+- After Phase 4 DNS cutover + Ingress contract: canary Gateway-only with no rollback (hours of soak OK; ≥1 day optional).
+- Recipe table above stays the template for Wave B+.
 
 ---
 
@@ -413,11 +427,61 @@ kubectl get svc -A | grep LoadBalancer
 
 ## Phase 7 — Documentation
 
-- [ ] This rollout Progress table → all phases ✅
-- [ ] `README.md` To Do #1 struck / completed
+- [ ] This rollout Progress table → phases 0–7 ✅ (Phase 8 may still be open)
+- [ ] `README.md` To Do #1 struck / completed (Gateway edge live; Phase 8 is hardening)
 - [ ] KEYCLOAK.md / app READMEs: Ingress class → Gateway; VIP if changed
 - [ ] ENGINEERING or platform notes: new apps use HTTPRoute + parentRefs, not Ingress
 - [ ] Note kgateway / Gateway API versions pinned in GitOps
+- [ ] Point at Phase 8 as the path to “no Gateway edit for new hostnames”
+
+---
+
+## Phase 8 — Wildcard TLS + freeze Gateway listeners
+
+**Goal:** Converge HTTPS on platform-owned certs/listeners so app onboarding matches Gateway API separation of duties: **infra owns `Gateway`**, **apps own `HTTPRoute`** (and Services). Adding `foo.home.bradandmarsha.com` must not require editing `gateway-public` / `gateway-internal`.
+
+**When:** After Phase 6 (ingress-nginx gone) and traffic is stable on kgateway. Do **not** block Waves B–D on this — interim hostname-scoped listeners are fine during migration.
+
+### Why
+
+| Today (interim) | Target |
+|-----------------|--------|
+| One HTTPS `listener` + `certificateRefs` per hostname | Stable listeners: HTTP `:80`, HTTPS wildcard, HTTPS apex |
+| New service → Gateway YAML change in `kgateway` overlay | New service → app `HTTPRoute` (+ DNS annotations) only |
+| Per-app LE Secrets + `ReferenceGrant`s | Platform cert Secret(s) in `kgateway-system` (or certs ns) |
+
+### Deliverables
+
+1. **Certificate** (Let’s Encrypt DNS-01) covering:
+   - `*.home.bradandmarsha.com`
+   - `home.bradandmarsha.com` (apex — **not** matched by the wildcard alone)
+   Prefer one Secret with both SANs; attach to listeners as needed.
+2. **Gateway listener reshape** (public and internal as appropriate):
+   - Keep `http` `:80` (`allowedRoutes` from app namespaces / `All` as today).
+   - Replace per-host HTTPS listeners with:
+     - `hostname: "*.home.bradandmarsha.com"` → wildcard Secret
+     - `hostname: home.bradandmarsha.com` → same Secret (or apex-only Secret)
+   - Remove placeholder `gateway-edge-tls` listener once nothing relies on it.
+3. **HTTPRoutes** keep per-app `hostnames:`; they attach to the shared HTTPS listener (by `sectionName` or listener hostname match) — no per-app Gateway edits.
+4. **Contract per-app TLS wiring:** delete hostname-scoped listeners, app-ns `ReferenceGrant`s for Gateway→Secret, and (after soak) redundant per-app `Certificate` CRs if unused elsewhere.
+5. **Document the freeze:** platform PRs change Gateways; app PRs add/change HTTPRoutes only.
+
+### Verify
+
+- [ ] `openssl s_client` / browser: subdomain and apex present expected LE chain
+- [ ] Spot-check several hosts (public + internal) over wildcard listener
+- [ ] Add a throwaway HTTPRoute hostname under `*.home…` **without** editing Gateway — route Accepted and serves
+- [ ] Confirm no remaining per-host HTTPS listeners on either Gateway
+
+### Exit criteria
+
+- New subdomain apps require **no** `Gateway` manifest change.
+- Gateway HTTPS listener set is stable (http + wildcard [+ apex]); per-app cert sprawl removed or clearly deprecated.
+- ENGINEERING / rollout notes describe the SoD boundary.
+
+### Rollback
+
+Re-add hostname-scoped listeners + per-app cert refs from git; keep wildcard cert issued but unused until ready to retry.
 
 ---
 
@@ -432,6 +496,8 @@ kubectl get svc -A | grep LoadBalancer
 | Router still DNAT to old VIP after cutover | Phase 5 VIP checklist; LAN + WAN curl tests |
 | Flux NetworkPolicy blocks flux-web | Update in same PR as flux-web HTTPRoute |
 | kgateway chart upgrade breaks CRDs | Pin versions; stage upgrades like cert-manager |
+| Wildcard omits apex `home.bradandmarsha.com` | Phase 8 cert/listener explicitly includes apex SAN + listener |
+| Wildcard cutover breaks one hostname’s cert pinning / HSTS assumptions | Dual-run listeners briefly; roll host-by-host if needed |
 
 ---
 
