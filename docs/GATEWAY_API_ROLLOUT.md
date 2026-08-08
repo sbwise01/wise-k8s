@@ -2,7 +2,7 @@
 
 Replace **ingress-nginx** (public + internal) with **Kubernetes Gateway API** using **[kgateway](https://kgateway.dev/)** as the control plane, keeping **MetalLB layer-2** as the on-LAN VIP advertisement for both public and internal edge traffic.
 
-**Status:** Phase 1 ✅ complete (2026-08-08) — decisions below are **locked**; revise only via PR.
+**Status:** Phase 2 in progress (2026-08-08) — decisions below are **locked**; revise only via PR.
 
 **README backlog:** [To Do #1](../README.md) — *Replace Ingress' with Gateway API*.
 
@@ -58,11 +58,11 @@ DNS (unchanged model)
 | 1 | Control plane | **kgateway** (`GatewayClass` name expected: `kgateway`) |
 | 2 | Install model | GitOps in `wise-k8s` — **vendored YAML only** (Gateway API CRDs + `helm template` output of kgateway charts); Flux `Kustomization`, namespace `kgateway-system`. No live `HelmRelease`. |
 | 2a | Pinned versions | Gateway API **v1.6.1** (standard channel); kgateway / kgateway-crds charts **2.4.2** (rendered into `iac/kustomize/kgateway/base/2.4.2/source/`) |
-| 3 | Edge topology | **Two Gateways**: `gateway-public` (pool `home-pool`) and `gateway-internal` (pool `home-pool-internal`) |
+| 3 | Edge topology | **Two Gateways** in `kgateway-system`: `gateway-public` (pool `home-pool`) and `gateway-internal` (pool `home-pool-internal`), each with a matching `GatewayParameters` (`externalTrafficPolicy: Local` + MetalLB pool annotation) |
 | 4 | MetalLB integration | Gateways create `Service` type `LoadBalancer`; annotate with `metallb.io/address-pool`; prefer `externalTrafficPolicy: Local` (match ingress-nginx) |
 | 5 | Dual-run strategy | **Expand → migrate → contract** — kgateway alongside ingress-nginx until all routes cut over |
 | 6 | Canary app | **flask-hello-world** (simple public Ingress, no nginx-specific annotations) |
-| 7 | TLS | Keep existing `Certificate` CRs; attach secrets to Gateway HTTPS listeners (hostname-scoped listeners or shared wildcard strategy TBD in Phase 1 spike) |
+| 7 | TLS | Keep existing per-app `Certificate` CRs (Let’s Encrypt DNS-01). Phase 2 Gateways use a **placeholder self-signed** secret (`gateway-edge-tls` in `kgateway-system`) on a hostname-agnostic HTTPS listener so L2/HTTPS smoke works. Phase 3+ attaches real secrets via **hostname-scoped HTTPS listeners** (one listener per host + cert). |
 | 8 | DNS cutover | Enable external-dns **`gateway-httproute`** (and RBAC) before deleting Ingresses; keep public CNAME→apex pattern where used today |
 | 9 | Public VIP cutover | During dual-run, public Gateway gets a **new** IP from `home-pool` (do **not** steal `192.168.40.216` while nginx still holds it). Final cutover: move router DNAT / reclaim `.216` for Gateway **or** leave Gateway on new VIP and point router at it — pick one in Phase 5 checklist |
 | 10 | Out of scope (v1) | HTTP-01 challenges, IPv6 dual-stack, replacing MetalLB, EnvoyFilter/advanced mesh, merging public+internal into one Gateway |
@@ -153,7 +153,7 @@ If a feature has no clean Gateway equivalent, document a temporary exception and
 |-------|--------|
 | 0 — Decisions & inventory | ✅ Locked in this doc |
 | 1 — Deploy kgateway + Gateway API CRDs (no traffic) | ✅ Complete (2026-08-08) — Flux Ready; GatewayClass Accepted; no edge LB |
-| 2 — MetalLB-backed public/internal Gateways + smoke test | ⬜ |
+| 2 — MetalLB-backed public/internal Gateways + smoke test | 🔄 In progress (2026-08-08) |
 | 3 — Canary: flask-hello-world on Gateway API | ⬜ |
 | 4 — external-dns Gateway sources + dual-publish strategy | ⬜ |
 | 5 — Convert remaining Ingresses (Waves B–D) | ⬜ |
@@ -252,15 +252,23 @@ If DNS curls regress or nginx VIPs change unexpectedly → delete the Gateways (
 
 ### Deliverables
 
-1. `Gateway` `gateway-public` in `kgateway-system` (or dedicated `gateway` namespace — pick one and stick to it):
+1. ✅ Namespace locked: Gateways live in **`kgateway-system`** (same as control plane).
+2. ✅ `GatewayParameters` + `Gateway` `gateway-public`:
    - `gatewayClassName: kgateway`
-   - Listeners: HTTP `:80` (redirect) + HTTPS `:443` (TLS mode/terminate; hostname strategy from spike)
-   - Infrastructure / Service annotations equivalent to:
-     - `metallb.io/address-pool: home-pool`
-     - `externalTrafficPolicy: Local`
-2. `Gateway` `gateway-internal` with pool `home-pool-internal`.
-3. Document assigned VIPs in this file’s Progress notes once known.
-4. Optional: pin IPs via Gateway `spec.addresses` or MetalLB annotations **only** after confirming kgateway propagates them to the proxy Service.
+   - Listeners: HTTP `:80` + HTTPS `:443` (Terminate via placeholder `gateway-edge-tls`)
+   - `GatewayParameters`: `type: LoadBalancer`, `externalTrafficPolicy: Local`, `metallb.io/address-pool: home-pool`
+   - HTTP→HTTPS redirect is **per-HTTPRoute** (`RequestRedirect`); added with app routes in Phase 3+, not as a Gateway-level filter
+3. ✅ `Gateway` `gateway-internal` with pool `home-pool-internal` (same listener/TLS pattern).
+4. ✅ Placeholder `Issuer`/`Certificate` `gateway-edge-tls` (self-signed) for HTTPS smoke; real LE secrets in Phase 3+.
+5. ⬜ Document assigned VIPs below once MetalLB allocates them.
+6. Optional later: pin IPs via Gateway `spec.addresses` or MetalLB annotations **only** after confirming kgateway propagates them to the proxy Service.
+
+**Assigned VIPs (fill after reconcile)**
+
+| Gateway | Pool | EXTERNAL-IP |
+|---------|------|-------------|
+| `gateway-public` | `home-pool` | _TBD_ |
+| `gateway-internal` | `home-pool-internal` | _TBD_ |
 
 ### Verify
 
@@ -273,8 +281,9 @@ kubectl get svc -n kgateway-system   # LoadBalancer EXTERNAL-IPs from correct po
 ### Exit criteria
 
 - Public VIP ∈ `192.168.40.216–234` and **≠** current nginx VIP while dual-running.
-- Internal VIP ∈ `192.168.40.235–253`.
+- Internal VIP ∈ `192.168.40.235–253` and **≠** nginx-internal VIP while dual-running.
 - L2Advertisement still only those two pools (no BGP).
+- Existing DNS hostnames still served by ingress-nginx (non-impact checks).
 
 ---
 
