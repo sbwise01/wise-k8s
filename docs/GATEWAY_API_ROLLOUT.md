@@ -2,7 +2,7 @@
 
 Replace **ingress-nginx** (public + internal) with **Kubernetes Gateway API** using **[kgateway](https://kgateway.dev/)** as the control plane, keeping **MetalLB layer-2** as the on-LAN VIP advertisement for both public and internal edge traffic.
 
-**Status:** Phase 1 in progress — decisions below are **locked**; revise only via PR.
+**Status:** Phase 1 ✅ complete (2026-08-08) — decisions below are **locked**; revise only via PR.
 
 **README backlog:** [To Do #1](../README.md) — *Replace Ingress' with Gateway API*.
 
@@ -152,7 +152,7 @@ If a feature has no clean Gateway equivalent, document a temporary exception and
 | Phase | Status |
 |-------|--------|
 | 0 — Decisions & inventory | ✅ Locked in this doc |
-| 1 — Deploy kgateway + Gateway API CRDs (no traffic) | 🟨 Manifests ready — merge & verify on cluster |
+| 1 — Deploy kgateway + Gateway API CRDs (no traffic) | ✅ Complete (2026-08-08) — Flux Ready; GatewayClass Accepted; no edge LB |
 | 2 — MetalLB-backed public/internal Gateways + smoke test | ⬜ |
 | 3 — Canary: flask-hello-world on Gateway API | ⬜ |
 | 4 — external-dns Gateway sources + dual-publish strategy | ⬜ |
@@ -173,7 +173,7 @@ If a feature has no clean Gateway equivalent, document a temporary exception and
    - Kubernetes **Gateway API** standard CRDs **v1.6.1** (`base/gateway-api/`).
    - **kgateway-crds** + **kgateway** chart **2.4.2** rendered with `helm template` into `base/2.4.2/source/`.
    - Re-vendor steps documented in `base/2.4.2/kustomization.yaml`.
-3. ⬜ Confirm `GatewayClass` `kgateway` exists (created by controller at runtime) and pods healthy after Flux reconcile.
+3. ✅ `GatewayClass` `kgateway` Accepted (`controller: kgateway.dev/kgateway`); controller pod Ready.
 4. ✅ Flux `dependsOn: metal-lb`.
 
 ### Verify
@@ -184,10 +184,65 @@ kubectl -n kgateway-system get pods
 kubectl get crd | grep -E 'gateway\.networking\.k8s\.io|kgateway'
 ```
 
+**Verified 2026-08-08:** Flux `kgateway` Ready/Healthy; pod `1/1`; GatewayClass Accepted; kgateway Service is ClusterIP only; ingress-nginx public/internal LBs still on `.216` / `.235`.
+
 ### Exit criteria
 
-- No new LoadBalancer Services yet (or only unused test Gateway deleted before exit).
-- ingress-nginx still serves all production hostnames.
+- ✅ No new LoadBalancer Services from kgateway.
+- ✅ ingress-nginx still serves all production hostnames.
+
+---
+
+## Non-impact checks (Ingress stays on nginx)
+
+kgateway implements **Gateway API**, not the Ingress API. The control-plane install (Phase 1) does not create an `IngressClass`, does not register Ingress admission webhooks, and does not claim MetalLB VIPs. Existing traffic stays on ingress-nginx until an app is explicitly moved to an `HTTPRoute` (Phase 3+).
+
+### Baseline after Phase 1 (already true on 2026-08-08)
+
+| Check | Expect |
+|-------|--------|
+| `kubectl get ingressclass` | Only `nginx` / `nginx-internal` (no kgateway IngressClass) |
+| Admission webhooks | No kgateway / Gateway mutating or validating webhooks on `Ingress` |
+| `kubectl get ingress -A` | All hosts still `class=nginx` or `nginx-internal`; no kgateway labels/annotations |
+| LoadBalancer Services | Only ingress-nginx controllers; kgateway Service is **ClusterIP** |
+| MetalLB VIPs | Public nginx **`192.168.40.216`**, internal **`192.168.40.235`** (unchanged) |
+
+Spot-check a few live hosts (LAN or WAN as you normally use them):
+
+```bash
+# Should hit nginx VIPs / existing DNS — not kgateway
+curl -fsS -o /dev/null -w '%{http_code} %{url_effective}\n' https://flask-hello-world.home.bradandmarsha.com/
+curl -fsS -o /dev/null -w '%{http_code}\n' https://auth.home.bradandmarsha.com/
+curl -fsS -o /dev/null -w '%{http_code}\n' https://home.bradandmarsha.com/
+```
+
+### Before / right after Phase 2 Gateways (critical)
+
+Phase 2 **does** create new MetalLB LoadBalancer Services. That can impact Ingress **only if** a Gateway steals an IP already used by nginx (ARP conflict).
+
+| Check | Expect |
+|-------|--------|
+| New public Gateway EXTERNAL-IP | In `home-pool` **and ≠ `192.168.40.216`** while nginx public still exists |
+| New internal Gateway EXTERNAL-IP | In `home-pool-internal` **and ≠ `192.168.40.235`** while nginx internal still exists |
+| `kubectl get ingress -A` ADDRESS / classes | Unchanged vs baseline |
+| curl existing hostnames (DNS, not Gateway VIP) | Same status as baseline |
+| curl new Gateway VIP with a production `Host` header | May 404 / no route — **must not** replace nginx responses for that hostname until HTTPRoute cutover |
+
+```bash
+# After Phase 2 Gateways exist:
+kubectl get svc -A -o wide | grep LoadBalancer
+# Confirm two nginx LBs + two new gateway LBs, four distinct IPs
+
+# Ingress path still nginx (use real DNS):
+curl -fsS -o /dev/null -w '%{http_code}\n' https://flask-hello-world.home.bradandmarsha.com/
+
+# Gateway VIP is a separate listener (no HTTPRoute yet → not your app):
+PUB=$(kubectl get gateway gateway-public -n kgateway-system -o jsonpath='{.status.addresses[0].value}')
+curl -vk --resolve flask-hello-world.home.bradandmarsha.com:443:$PUB \
+  https://flask-hello-world.home.bradandmarsha.com/ 2>&1 | head -40
+```
+
+If DNS curls regress or nginx VIPs change unexpectedly → delete the Gateways (or their Services) first; leave ingress-nginx alone.
 
 ---
 
