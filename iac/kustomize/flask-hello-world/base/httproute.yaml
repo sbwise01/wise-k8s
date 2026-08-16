@@ -3,6 +3,15 @@ kind: HTTPRoute
 metadata:
   name: flask-hello-world
   namespace: default
+  annotations:
+    # Index site metadata (also still on Ingress during dual-run; move-only at contract).
+    index.home.bradandmarsha.com/enabled: "true"
+    index.home.bradandmarsha.com/name: "Flask Hello World"
+    index.home.bradandmarsha.com/image: "https://media.home.bradandmarsha.com/media/flaskred.png"
+    index.home.bradandmarsha.com/description: "Sample Flask app for testing changes to the cluster"
+    index.home.bradandmarsha.com/weight: "20"
+    # DNS hostname comes from spec.hostnames; public CNAME target comes from
+    # gateway-public's external-dns target annotation (Phase 4).
 spec:
   parentRefs:
     - name: gateway-public
@@ -20,6 +29,8 @@ spec:
           port: 5000
 ---
 # HTTP → HTTPS redirect (Gateway API has no Gateway-level ssl-redirect).
+# Same hostname as the HTTPS route; external-dns should emit an identical
+# CNAME (via gateway-public target) and dedupe under --policy=sync.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:

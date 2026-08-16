@@ -155,7 +155,7 @@ If a feature has no clean Gateway equivalent, document a temporary exception and
 | 1 — Deploy kgateway + Gateway API CRDs (no traffic) | ✅ Complete (2026-08-08) — Flux Ready; GatewayClass Accepted; no edge LB |
 | 2 — MetalLB-backed public/internal Gateways + smoke test | ✅ Complete (2026-08-08) — public `.217`, internal `.236`; nginx `.216`/`.235` unchanged |
 | 3 — Canary: flask-hello-world on Gateway API | 🔄 Expand in progress (2026-08-08) — Ingress kept until VIP/`--resolve` OK |
-| 4 — external-dns Gateway sources + dual-publish strategy | ⬜ |
+| 4 — external-dns Gateway sources + dual-publish strategy | 📝 Prepared locally (soak Phase 3; do not merge until ready) |
 | 5 — Convert remaining Ingresses (Waves B–D) | ⬜ |
 | 6 — Contract: remove Ingresses, ingress-nginx, dead deps | ⬜ |
 | 7 — Docs / README / KEYCLOAK.md VIP references | ⬜ |
@@ -319,43 +319,71 @@ kubectl get svc -n kgateway-system   # LoadBalancer EXTERNAL-IPs from correct po
 - [ ] `curl -vk --resolve flask-hello-world.home.bradandmarsha.com:443:192.168.40.217 https://flask-hello-world.home.bradandmarsha.com/`
 - [ ] TLS cert is Let’s Encrypt (not the placeholder self-signed edge cert)
 - [ ] Body / health matches nginx DNS path
-- [ ] DNS path still hits nginx (unchanged) until Phase 4 cutover
+- [x] DNS path still hits nginx (unchanged) — WAN DNAT → `.216` until Phase 5 VIP cutover
+- [x] Expand verified 2026-08-08 (`--resolve` → LE + 200; DNS/nginx body match)
 
-### Contract (canary only — after expand verify)
+### Contract (canary only — **not** during Phase 4 alone)
 
-- Remove flask-hello-world `Ingress` (+ move index annotations to `HTTPRoute` if needed).
-- Leave Certificate CR in place.
-- Prefer short soak after DNS cutover (Phase 4); a full day is optional for this low-risk app.
+- Do **not** delete public Ingresses until Phase 5 router/VIP cutover: DNS CNAME→apex still lands on nginx `.216`. Removing Ingress earlier breaks the public path even if external-dns keeps the CNAME.
+- When contracting: move index annotations fully to `HTTPRoute`; leave Certificate CR.
+- Short soak after public traffic actually hits Gateway (post–Phase 5); ≥1 day optional for flask.
 
 ### Exit criteria
 
-- Expand: Gateway VIP `--resolve` serves canary with correct LE cert; nginx DNS path still healthy.
-- After Phase 4 DNS cutover + Ingress contract: canary Gateway-only with no rollback (hours of soak OK; ≥1 day optional).
+- Expand: ✅ Gateway VIP `--resolve` serves canary with correct LE cert; nginx DNS path still healthy.
+- Contract / “Gateway-only” for public canary waits on Phase 4 DNS ownership **and** Phase 5 DNAT/VIP cutover.
 - Recipe table above stays the template for Wave B+.
 
 ---
 
 ## Phase 4 — external-dns Gateway awareness
 
-**Goal:** DNS follows HTTPRoutes / Gateways without relying on Ingress.
+**Goal:** DNS can follow HTTPRoutes without relying on Ingress objects (ownership + publish path). This does **not** by itself move WAN traffic onto kgateway — see [public path note](#public-wan-path-vs-dns-ownership).
 
-### Deliverables
+**Local prep:** branch `feat/gateway-api-phase-4-external-dns` (uncommitted until Phase 3 soak completes).
 
-1. Add external-dns source(s): `--source=gateway-httproute` (and Gateway if required by chart version).
-2. Extend ClusterRole for `gateway.networking.k8s.io` resources.
-3. Annotation strategy:
-   - Prefer Gateway API / external-dns supported annotations on `HTTPRoute` or `Gateway` (match today’s hostname + optional `external-dns.alpha.kubernetes.io/target: home.bradandmarsha.com` for public CNAMEs).
-4. Dual-publish rule: while Ingress and HTTPRoute both exist for a host, **avoid** conflicting owners under `--policy=sync` — migrate DNS by removing Ingress annotations **or** deleting Ingress only after HTTPRoute is annotated and records verified.
+### Public WAN path vs DNS ownership
 
-### Verify
+| Layer | Today | After Phase 4 only | After Phase 5 VIP/DNAT cutover |
+|-------|--------|--------------------|--------------------------------|
+| Route53 public hostnames | CNAME → `home…` (apex A = WAN) | Same (if Gateway `target` = apex) | Same |
+| Router :443 | → nginx `.216` | Still → `.216` | → Gateway (`.217` or reclaimed `.216`) |
+| Who may own the DNS record | Ingress annotations | Ingress **and/or** HTTPRoute via `gateway-httproute` | HTTPRoute (Ingress gone) |
 
-- Route53 record for canary host still correct after Ingress removal.
-- TXT ownership records update cleanly (`txt-owner-id` unchanged).
+`--resolve` / LAN → `.217` remains the data-plane test until DNAT moves.
+
+### Deliverables (prepared)
+
+1. ✅ external-dns `--source=gateway-httproute` (overlay patch; keep `ingress` + `service`).
+2. ✅ ClusterRole: `gateways` + `httproutes` (+ `namespaces`) get/watch/list.
+3. ✅ Annotation strategy (external-dns **v0.20**):
+   - **`external-dns.alpha.kubernetes.io/target` on `Gateway` only** (ignored on HTTPRoute in v0.20).
+   - `gateway-public` → `target: home.bradandmarsha.com` so public HTTPRoutes publish **CNAME→apex** (not A→`.217`).
+   - `gateway-internal` → **no** target annotation (A → MetalLB internal VIP from `status.addresses`).
+   - Hostnames from HTTPRoute `spec.hostnames` (no duplicate hostname annotation required).
+4. ✅ Dual-publish rule for canary: with matching CNAME targets, Ingress + HTTPRoute may both desire the same record under `--policy=sync`. **Do not** remove Ingress external-dns annotations until HTTPRoute path is confirmed in Route53 / external-dns logs.
+5. ✅ Canary HTTPS `HTTPRoute` carries index annotations (prep for later Ingress contract).
+
+### Verify (when merged after soak)
+
+```bash
+kubectl -n external-dns get deploy external-dns -o jsonpath='{.spec.template.spec.containers[0].args}' | tr ',' '\n'
+# expect --source=gateway-httproute
+
+# Route53: flask CNAME still → home.bradandmarsha.com (unchanged vs Ingress-only)
+# external-dns logs: no fight / no flip to A 192.168.40.217 for public hosts
+```
+
+- [ ] Flask CNAME target unchanged after enabling gateway source
+- [ ] TXT ownership (`txt-owner-id`) stable
+- [ ] DNS HTTPS still hits nginx (expected until Phase 5)
+- [ ] `--resolve` to `.217` still serves canary
 
 ### Exit criteria
 
-- New hostnames can be published **without** an Ingress object.
-
+- New hostnames **can** be published from HTTPRoute alone (no Ingress required for DNS).
+- Public CNAME→apex pattern preserved via `gateway-public` target annotation.
+- Explicit: Phase 4 exit ≠ public canary traffic on Gateway; that is Phase 5.
 ---
 
 ## Phase 5 — Convert remaining Ingresses (Waves B–D)

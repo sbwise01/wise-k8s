@@ -15,5 +15,12 @@ patches:
       kind: Deployment
     path: patches/args.yaml
   - target:
+      kind: Deployment
+    path: patches/gateway-api-source.yaml
+  - target:
+      kind: ClusterRole
+      name: external-dns
+    path: patches/gateway-api-rbac.yaml
+  - target:
       kind: ServiceAccount
     path: patches/aws-role.yaml
