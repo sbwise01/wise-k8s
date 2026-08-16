@@ -1,0 +1,4 @@
+# Phase 4 — discover DNS names from Gateway API HTTPRoutes.
+- op: add
+  path: /spec/template/spec/containers/0/args/-
+  value: '--source=gateway-httproute'

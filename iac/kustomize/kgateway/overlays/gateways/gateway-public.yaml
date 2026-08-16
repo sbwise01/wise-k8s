@@ -3,6 +3,11 @@ kind: Gateway
 metadata:
   name: gateway-public
   namespace: kgateway-system
+  annotations:
+    # external-dns v0.20 reads target from Gateway (not HTTPRoute).
+    # Keep public CNAMEs → apex (WAN A via route53-ddns), same as Ingress today.
+    # Without this, gateway-httproute would publish A → MetalLB VIP (.217).
+    external-dns.alpha.kubernetes.io/target: home.bradandmarsha.com
 spec:
   gatewayClassName: kgateway
   infrastructure:
