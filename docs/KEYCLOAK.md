@@ -2,7 +2,7 @@
 
 Deploy **Keycloak** on **wise-k8s** as a self-hosted OIDC/OAuth2 identity provider for a new **public-facing application**, backed by a **highly available Postgres** database.
 
-This plan follows the same phased, verifiable style used for other homelab rollouts (see `LONG_HORIZON.md` if present). Update the **Progress** table as phases complete.
+This plan follows the same phased, verifiable style used for other homelab rollouts (see `LONG_HORIZON.md` if present). Update the **Progress** table as phases complete. Cluster edge is **kgateway** — see [`GATEWAY_API_ROLLOUT.md`](GATEWAY_API_ROLLOUT.md).
 
 ---
 
@@ -18,7 +18,7 @@ This plan follows the same phased, verifiable style used for other homelab rollo
 | **Existing stack** | CloudNativePG operator is already deployed; Keycloak runs well on **external Postgres** (required for HA) |
 | **GitOps** | Flux + Kustomize overlays match how the rest of `wise-k8s` is managed |
 | **Platform direction** | README already lists “Add keycloak for idp” — suggests multiple apps over time, not a one-off |
-| **Standards** | OIDC/OAuth2 integrates with ingress-nginx, Grafana, custom apps, and future services |
+| **Standards** | OIDC/OAuth2 integrates with kgateway (`gateway-public`), Grafana, custom apps, and future services |
 
 ### Caveats (go in with eyes open)
 
@@ -36,7 +36,8 @@ This plan follows the same phased, verifiable style used for other homelab rollo
 Internet / LAN
     │
     ▼
-ingress-nginx (public)  ──►  auth.home.bradandmarsha.com  ──►  Keycloak (2+ replicas)
+kgateway gateway-public (VIP 192.168.40.217; WAN TCP 443)
+    ──►  auth.home.bradandmarsha.com  ──►  Keycloak (2+ replicas)
                                                                     │
                                                                     ▼
                                                           CNPG cluster (keycloak-db)
@@ -56,7 +57,7 @@ New public app  ──OIDC──►  Keycloak          New public app  ──►
 |----------|----------------------|
 | Keycloak Operator deployment | Social login (Google/GitHub) — optional Phase 7 |
 | Dedicated CNPG cluster for Keycloak | Migrating existing apps to Keycloak |
-| Public ingress + TLS + external-dns | Gateway API migration (separate README todo) |
+| Public HTTPRoute + TLS + external-dns | — (Gateway API migration complete 2026-08-16; see `docs/GATEWAY_API_ROLLOUT.md`) |
 | Realm for the new app (Phase 4) | SAML / LDAP federation |
 | OIDC client + app integration (Phase 5) | — |
 | HA Postgres + 2 Keycloak replicas | Multi-site disaster recovery |
@@ -69,12 +70,13 @@ New public app  ──OIDC──►  Keycloak          New public app  ──►
 | Item | Suggested value |
 |------|-----------------|
 | Keycloak hostname | `auth.home.bradandmarsha.com` |
-| Ingress class (public) | `nginx` (same as Plex, wise-home-index) |
-| TLS | cert-manager Certificate (Let's Encrypt via existing stack) |
-| DNS | external-dns annotation on Ingress |
+| Public edge | HTTPRoute → `gateway-public` (`sectionName: https-auth`); VIP **`192.168.40.217`**; WAN TCP **443** |
+| Header size | `ListenerPolicy` `maxRequestHeadersKb: 128` on `gateway-public` (OIDC cookies) |
+| TLS | cert-manager Certificate (Let's Encrypt DNS-01) + Gateway hostname listener + `ReferenceGrant` |
+| DNS | external-dns `gateway-httproute`; CNAME → `home.bradandmarsha.com` |
 | Storage class | `csi-rbd-sc` (Rook Ceph) |
 | Git layout | `iac/kustomize/keycloak-operator/`, `keycloak/`, `keycloak-cnpg/` |
-| Flux Kustomizations | `cloud-native-pg` already exists; add `keycloak-cnpg`, `keycloak-operator`, `keycloak` |
+| Flux Kustomizations | `cloud-native-pg` already exists; add `keycloak-cnpg`, `keycloak-operator`, `keycloak` (`dependsOn: kgateway`) |
 | Secrets | SOPS or Sealed Secrets if already used elsewhere; never commit plaintext admin passwords |
 
 ---
@@ -117,6 +119,8 @@ New public app  ──OIDC──►  Keycloak          New public app  ──►
 
 **Capacity note:** 4 nodes (`wise-k8s-10`–`13`), 16 CPU / ~32 GiB each; ~94 running pods cluster-wide. Sufficient for Keycloak + another CNPG cluster, but watch JVM memory during Phase 2–6.
 
+Nginx rows above are the **2026-07-11 baseline**. Public edge is now **kgateway** `gateway-public` at **`192.168.40.217`** (WAN TCP 443); see [Conventions](#conventions-match-existing-wise-k8s-patterns).
+
 ### Decisions recorded
 
 | Decision | Choice |
@@ -126,14 +130,14 @@ New public app  ──OIDC──►  Keycloak          New public app  ──►
 | Keycloak server version | **26.7.0** (match operator) |
 | Realm name | **`wise-k8s`** |
 | Planned app | **a-cruet** (envelope budgeting) — see `a-cruet/PRODUCT.md`, `a-cruet/ROLLOUT.md` |
-| User app hostname | **`acruet.home.bradandmarsha.com`** (public `nginx` ingress) |
-| Admin app hostname | **`acruet-admin.home.bradandmarsha.com`** (internal `nginx-internal` ingress) |
+| User app hostname | **`acruet.home.bradandmarsha.com`** (public `gateway-public`) |
+| Admin app hostname | **`acruet-admin.home.bradandmarsha.com`** (internal `gateway-internal`, VIP **`192.168.40.236`**) |
 | OIDC mode | **Native OIDC** — confidential client, Tomcat server-side sessions (Jersey) |
 | OIDC client ID | **`acruet`** — redirect path `/auth/callback` on both hostnames |
 | Admin API client ID | **`acruet-admin`** — service account, client credentials (user provisioning) |
 | Realm role | **`a-cruet-admin`** — admin hostname authorization |
 | Keycloak self-registration | **Disabled** — applicants use a-cruet public signup; Keycloak users created on admin approval |
-| Admin access | **Public** ingress; permanent admin with **MFA** (Phase 4 complete) |
+| Admin access | **Public** `gateway-public`; permanent admin with **MFA** (Phase 4 complete) |
 
 ### Deliverable
 
@@ -147,9 +151,9 @@ New public app  ──OIDC──►  Keycloak          New public app  ──►
 kubectl get deployment -n cnpg-system
 flux get kustomizations cloud-native-pg
 
-# Public ingress path works (cert-manager, external-dns)
-kubectl -n ingress-nginx get svc
-flux get kustomizations cert-manager external-dns ingress-nginx-public
+# Public HTTPS path works (cert-manager, external-dns, kgateway)
+kubectl -n kgateway-system get svc gateway-public
+flux get kustomizations cert-manager external-dns kgateway
 
 # Capacity sanity (optional)
 kubectl top nodes
@@ -272,7 +276,9 @@ Verified 2026-07-11:
 
 ## Phase 3 — Public ingress + TLS
 
-**Goal:** `https://auth.home.bradandmarsha.com` on **public** ingress (`ingressClassName: nginx`).
+**Goal (2026-07-11):** `https://auth.home.bradandmarsha.com` on **public** ingress (`ingressClassName: nginx`).
+
+**Current edge (2026-08-16):** same hostname on **kgateway** `gateway-public` (VIP **`192.168.40.217`**, WAN TCP **443**). Manifests: `keycloak/base/httproute.yaml`, `referencegrant-gateway-tls.yaml`; HTTPS listener `https-auth` on `gateway-public`; `ListenerPolicy` `maxRequestHeadersKb: 128`. Operator ingress stays disabled. Historical nginx Ingress table below is the Phase 3 verify snapshot.
 
 ### Manifests
 
@@ -292,8 +298,8 @@ Nginx ingress forwards `X-Forwarded-Proto` / `X-Forwarded-Host` by default; Keyc
 ### Verify
 
 ```bash
-flux get kustomizations keycloak
-kubectl -n keycloak get certificate,ingress
+flux get kustomizations keycloak kgateway
+kubectl -n keycloak get certificate,httproute
 kubectl -n keycloak describe certificate keycloak-certificate
 
 curl -sI https://auth.home.bradandmarsha.com/realms/master
@@ -332,9 +338,9 @@ Phase 4 is **realm and admin configuration**, not cluster infrastructure. The re
 | Realm `wise-k8s` | Create in admin UI | `KeycloakRealmImport` — `iac/kustomize/keycloak/base/realm-import.yaml` ([CRD](https://www.keycloak.org/operator/realm-import)) |
 | Test user / roles | Users & roles UI | Include in realm import JSON, or create via UI |
 | Admin password rotation | Users → admin → Credentials | Operator Secret `keycloak-initial-admin` or custom bootstrap |
-| Admin console restriction | — | Ingress annotation / separate internal Ingress / NetworkPolicy |
+| Admin console restriction | — | HTTPRoute / NetworkPolicy / internal Gateway |
 
-**Admin hardening choices (2026-07-12):** Admin console remains on **public** ingress; permanent `master` admin replaces `temp-admin` with **MFA** (TOTP and/or WebAuthn) enrolled.
+**Admin hardening choices (2026-07-12):** Admin console remains on **public** `gateway-public`; permanent `master` admin replaces `temp-admin` with **MFA** (TOTP and/or WebAuthn) enrolled.
 
 **Realm name:** **`wise-k8s`** (Phase 0 decision). Use `master` only for break-glass admin — not for app logins.
 
@@ -349,7 +355,7 @@ Phase 4 is **realm and admin configuration**, not cluster infrastructure. The re
 3. **Admin hardening:**
    - Create permanent admin in `master`; delete `temp-admin` (see operator bootstrap banner)
    - Rotate bootstrap admin password (Secret `keycloak-initial-admin` or Keycloak admin UI)
-   - Consider restricting admin console to internal ingress or IP allowlist
+   - Consider restricting admin console to `gateway-internal` or an IP allowlist
    - Brute-force detection (enabled in `realm-import.yaml` — verify in realm settings)
    - Document break-glass admin recovery
 
@@ -379,7 +385,7 @@ Verified 2026-07-12:
 | Permanent `master` admin | **Created** — replaces `temp-admin` |
 | Admin MFA | **Enrolled** on permanent admin |
 | `temp-admin` | **Removed** |
-| Admin console | **Public** ingress (MFA protects account access) |
+| Admin console | **Public** `gateway-public` (MFA protects account access) |
 
 ---
 
@@ -387,14 +393,14 @@ Verified 2026-07-12:
 
 **Goal:** Register **a-cruet** in Keycloak and authenticate users/admins via OIDC.
 
-**Status:** Product decisions locked in `a-cruet/PRODUCT.md` (2026-07-12). Execute after **a-cruet ROLLOUT Phase 3** (Tomcat shells deployed with ingress + TLS). Can overlap with **a-cruet ROLLOUT Phase 2** (`acruet-cnpg`) and **Keycloak Phase 6** HA scale.
+**Status:** Product decisions locked in `a-cruet/PRODUCT.md` (2026-07-12). Execute after **a-cruet ROLLOUT Phase 3** (Tomcat shells deployed with HTTPRoute + TLS). Can overlap with **a-cruet ROLLOUT Phase 2** (`acruet-cnpg`) and **Keycloak Phase 6** HA scale.
 
 **Prerequisites (a-cruet):**
 
 | Prerequisite | Value |
 |--------------|-------|
-| User ingress + TLS | `https://acruet.home.bradandmarsha.com` |
-| Admin ingress + TLS | `https://acruet-admin.home.bradandmarsha.com` (internal LB) |
+| User HTTPRoute + TLS | `https://acruet.home.bradandmarsha.com` (`gateway-public`) |
+| Admin HTTPRoute + TLS | `https://acruet-admin.home.bradandmarsha.com` (`gateway-internal` `.236`) |
 | OIDC callback handler | `/auth/callback` on both hostnames |
 | Client secret storage | SOPS-encrypted Secret in `iac/kustomize/acruet/` |
 | First admin bootstrap | Manual `a-cruet-admin` realm role in Keycloak console |
@@ -534,7 +540,7 @@ curl -s https://auth.home.bradandmarsha.com/realms/wise-k8s/.well-known/openid-c
 | Scheduling | Pod anti-affinity or topology spread so replicas prefer different nodes |
 | PodDisruptionBudget | Allow one disruption during node maintenance |
 | CNPG | Already 3-instance; verify sync replication healthy |
-| Ingress | Round-robin on public nginx is fine once embedded cache is active; sticky sessions are optional, not required for correctness |
+| Edge | Round-robin on `gateway-public` is fine once embedded cache is active; sticky sessions are optional, not required for correctness |
 
 See **Distributed cache** below for what not to deploy.
 
@@ -578,7 +584,7 @@ kubectl -n keycloak delete pod -l app=keycloak --wait=false
 |--------|----------|
 | CNPG | Prometheus metrics (CNPG exporter annotations — same pattern as `plex-cnpg`) |
 | Keycloak | Keycloak metrics endpoint + ServiceMonitor if operator exposes it; Grafana dashboard |
-| Ingress | Existing nginx / prometheus stack |
+| Edge | kgateway / prometheus stack |
 
 ### Backup
 
@@ -617,9 +623,9 @@ kubectl -n keycloak delete pod -l app=keycloak --wait=false
 |-------------|--------|
 | `iac/kustomize/keycloak-cnpg/` | CNPG Cluster + Database for Keycloak |
 | `iac/kustomize/keycloak-operator/` | Operator install (base version pin + overlay) |
-| `iac/kustomize/keycloak/` | Keycloak CR, Ingress, Certificate, namespace |
+| `iac/kustomize/keycloak/` | Keycloak CR, HTTPRoute, Certificate, ReferenceGrant, namespace |
 | `iac/kustomize/fluxcd/kustomizations/keycloak*.yaml` | Flux wiring |
-| `iac/kustomize/acruet/` | a-cruet user + admin Tomcat deployments, ingresses, SOPS secrets |
+| `iac/kustomize/acruet/` | a-cruet user + admin Tomcat deployments, HTTPRoutes, SOPS secrets |
 | `iac/kustomize/acruet-cnpg/` | CNPG cluster for a-cruet |
 | `iac/kustomize/keycloak/base/oidc-client-acruet*.yaml` | Phase 5 Keycloak clients |
 | `README.md` | Remove Keycloak todo when Phase 8 passes |
@@ -631,7 +637,7 @@ kubectl -n keycloak delete pod -l app=keycloak --wait=false
 1. Phase 0 decisions
 2. Phase 1 CNPG (Keycloak DB only)
 3. Phase 2 Keycloak internal (single replica)
-4. Phase 3 public ingress
+4. Phase 3 public HTTPS (`HTTPRoute` → `gateway-public`)
 5. Phase 4 realm + admin hardening
 6. a-cruet ROLLOUT Phases 1–3 (scaffold + `acruet-cnpg` + platform deploy) — see `a-cruet/ROLLOUT.md`
 7. Phase 5 OIDC clients + a-cruet OIDC integration
@@ -644,10 +650,10 @@ kubectl -n keycloak delete pod -l app=keycloak --wait=false
 
 ## Risks and gotchas
 
-- **Hostname mismatch** — Keycloak `hostname`, Ingress host, and OIDC issuer must agree.
+- **Hostname mismatch** — Keycloak `hostname`, HTTPRoute hostname, and OIDC issuer must agree.
 - **Shared DB anti-pattern** — Never put Keycloak and app tables in one database; separate CNPG clusters.
 - **Admin on public internet** — High-value target; restrict or MFA early.
-- **Session stickiness** — With a single replica, ingress stickiness masks missing cache config. With 2+ replicas you need **embedded Infinispan + jdbc-ping** (operator default when Postgres is configured); otherwise logins break across pods.
+- **Session stickiness** — With a single replica, proxy stickiness masks missing cache config. With 2+ replicas you need **embedded Infinispan + jdbc-ping** (operator default when Postgres is configured); otherwise logins break across pods.
 - **Resource pressure** — Keycloak + 2× CNPG clusters on 3 nodes; watch memory during JVM warmup.
 - **Confusion with AWS OIDC** — `oidc.home.bradandmarsha.com` is for IAM/IRSA, not user login.
 
@@ -675,7 +681,7 @@ You already planned CNPG for Keycloak — that database serves **two roles**: ap
 |--------|-----------------|
 | **External Infinispan / Data Grid Operator** | Multi-site / cross-DC Keycloak ([Keycloak HA multi-cluster guides](https://www.keycloak.org/high-availability/multi-cluster/deploy-infinispan-kubernetes-crossdc)). Keycloak upstream treats this as complexity reserved for that scenario. |
 | **Redis / Memcached** | Not Keycloak’s session cache model |
-| **Ingress session affinity alone** | Workaround at best; does not replace distributed cache for 2+ replicas |
+| **HTTPRoute session affinity alone** | Workaround at best; does not replace distributed cache for 2+ replicas |
 
 ### Verify cache clustering (Phase 6)
 
@@ -715,7 +721,7 @@ kubectl -n keycloak delete pod -l app=keycloak --wait=false
 - [Keycloak caching / distributed caches](https://www.keycloak.org/server/caching)
 - [Keycloak HA — single cluster (operator)](https://www.keycloak.org/high-availability/single-cluster/deploy-keycloak)
 - [CloudNativePG docs](https://cloudnative-pg.io/documentation/current/)
-- Existing patterns: `iac/kustomize/plex-cnpg/`, `iac/kustomize/plex/base/ingress.yaml`
+- Existing patterns: `iac/kustomize/plex-cnpg/`, `iac/kustomize/plex/base/httproute.yaml`, `docs/GATEWAY_API_ROLLOUT.md`
 - [OIDC spec](https://openid.net/specs/openid-connect-core-1_0.html)
 - Homelab long-horizon workflow: `LONG_HORIZON.md` (if present)
 - a-cruet app rollout: `../a-cruet/ROLLOUT.md`

@@ -2,7 +2,7 @@
 
 Replace **ingress-nginx** (public + internal) with **Kubernetes Gateway API** using **[kgateway](https://kgateway.dev/)** as the control plane, keeping **MetalLB layer-2** as the on-LAN VIP advertisement for both public and internal edge traffic.
 
-**Status:** Phase 6 (2026-08-16) — remove idle ingress-nginx; edge is kgateway + MetalLB L2. Decisions below are **locked**; revise only via PR.
+**Status:** Phase 7 complete (2026-08-16) — docs match kgateway edge. Phase 8 (wildcard TLS) remains. Decisions below are **locked**; revise only via PR.
 
 **README:** [To Do #1](../README.md) marked done 2026-08-16. Phase 8 (wildcard TLS) remains.
 
@@ -64,7 +64,7 @@ DNS (unchanged model)
 | 6 | Canary app | **flask-hello-world** (simple public Ingress, no nginx-specific annotations) |
 | 7 | TLS (interim → target) | **Interim (Phases 3–7):** keep per-app Let’s Encrypt `Certificate` CRs; attach via **hostname-scoped HTTPS listeners** (one listener per host + cert), plus Phase 2 placeholder `gateway-edge-tls`. **Target (Phase 8):** platform-owned wildcard `*.home.bradandmarsha.com` (and apex `home.bradandmarsha.com` — wildcards do not cover the apex) on stable Gateway HTTPS listeners so **new apps need only an `HTTPRoute`**, not a Gateway edit — Gateway API [separation of duties](https://gateway-api.sigs.k8s.io/concepts/security/) (infra owns Gateway; apps own Routes). |
 | 8 | DNS cutover | Enable external-dns **`gateway-httproute`** (and RBAC) before deleting Ingresses; keep public CNAME→apex pattern where used today |
-| 9 | Public VIP cutover | **Option B (locked 2026-08-16):** leave `gateway-public` on dual-run VIP **`192.168.40.217`**; retarget home-router WAN DNAT for TCP **80 and 443** from nginx `.216` → Gateway `.217`. Do **not** change internal nginx `.235` / `gateway-internal` `.236`. |
+| 9 | Public VIP cutover | **Option B (locked 2026-08-16):** leave `gateway-public` on VIP **`192.168.40.217`**. Home-router WAN DNAT is TCP **443 only** (no port 80) → `.217`. Internal apps use `gateway-internal` **`.236`**. |
 | 10 | Out of scope (v1) | HTTP-01 challenges, IPv6 dual-stack, replacing MetalLB, EnvoyFilter/advanced mesh, merging public+internal into one Gateway |
 
 ---
@@ -157,8 +157,8 @@ If a feature has no clean Gateway equivalent, document a temporary exception and
 | 3 — Canary: flask-hello-world on Gateway API | ✅ Expand complete; Ingress contracted in Phase 5 |
 | 4 — external-dns Gateway sources + dual-publish strategy | ✅ Complete (2026-08-16) — `gateway-httproute`; public CNAME→apex |
 | 5 — Convert remaining Ingresses (Waves B–D) | ✅ Contract 2026-08-16 — WAN `.217`; internal DNS → `.236`; Ingresses removed |
-| 6 — Contract: remove Ingresses, ingress-nginx, dead deps | ✅ Git contract (2026-08-16) — Flux prune reclaims `.216`/`.235` after merge |
-| 7 — Docs / README / KEYCLOAK.md VIP references | ⬜ |
+| 6 — Contract: remove Ingresses, ingress-nginx, dead deps | ✅ Complete (2026-08-16) — `#26`; nginx pruned; `.216`/`.235` free |
+| 7 — Docs / README / KEYCLOAK.md VIP references | ✅ Complete (2026-08-16) |
 | 8 — Wildcard TLS + freeze Gateway listeners (SoD) | ⬜ |
 
 ---
@@ -566,21 +566,57 @@ kubectl get svc -A | grep LoadBalancer
 
 Spot-check public + internal HTTPS still `server: envoy`.
 
+**Verified 2026-08-16** after merge of `#26` (`ff0c89b`):
+
+| Check | Result |
+|-------|--------|
+| Flux `ingress-nginx-*` KS | Gone |
+| Namespaces `ingress-nginx` / `ingress-nginx-internal` | Gone (briefly Terminating, then deleted) |
+| IngressClass / Ingress / nginx webhooks / ClusterRoles | None |
+| LoadBalancer Services | Only `gateway-public` `.217` and `gateway-internal` `.236` |
+| Flux KS | All Ready on `ff0c89b` |
+| Public HTTPS (WAN path) | All `server: envoy` — flask/media/home/acruet 200; auth 302; plex 401; oidc `/` 403, `/.well-known/openid-configuration` 200 |
+| Internal HTTPS A→`.236` | acruet-admin 302 OIDC; flux-web 200; ceph 200; grafana 302 `/login` |
+
 ### Exit criteria
 
-- [ ] Cluster edge is **only** kgateway + MetalLB L2 (after Flux prune).
+- [x] Cluster edge is **only** kgateway + MetalLB L2 (after Flux prune).
 - [x] README To Do #1 marked complete with date.
 
 ---
 
 ## Phase 7 — Documentation
 
-- [ ] This rollout Progress table → phases 0–7 ✅ (Phase 8 may still be open)
+- [x] This rollout Progress table → phases 0–7 ✅ (Phase 8 may still be open)
 - [x] `README.md` To Do #1 struck / completed (Gateway edge live; Phase 8 is hardening)
-- [ ] KEYCLOAK.md / app READMEs: Ingress class → Gateway; VIP if changed
-- [ ] ENGINEERING or platform notes: new apps use HTTPRoute + parentRefs, not Ingress
-- [ ] Note kgateway / Gateway API versions pinned in GitOps
-- [ ] Point at Phase 8 as the path to “no Gateway edit for new hostnames”
+- [x] KEYCLOAK.md / app READMEs: Ingress class → Gateway; VIP if changed
+- [x] Platform notes: new apps use HTTPRoute + parentRefs, not Ingress ([Onboarding](#onboarding-a-new-hostname))
+- [x] Note kgateway / Gateway API versions pinned in GitOps (locked decision 2a; `iac/kustomize/kgateway/base/`)
+- [x] Point at Phase 8 as the path to “no Gateway edit for new hostnames”
+
+---
+
+## Onboarding a new hostname
+
+**Do not create `Ingress` objects.** The cluster edge is kgateway + MetalLB L2.
+
+| Piece | Pin |
+|-------|-----|
+| Gateway API CRDs | **v1.6.1** standard channel (`iac/kustomize/kgateway/base/gateway-api/`) |
+| kgateway | **2.4.2** vendored YAML (`iac/kustomize/kgateway/base/2.4.2/`; re-vendor notes in that `kustomization.yaml`) |
+| Public Gateway | `gateway-public` in `kgateway-system` — VIP **`192.168.40.217`**; WAN TCP **443** DNAT |
+| Internal Gateway | `gateway-internal` in `kgateway-system` — VIP **`192.168.40.236`** (LAN A records) |
+
+Copy **`iac/kustomize/flask-hello-world/`** (simplest public app) or **`acruet/`** (public + internal + Maglev cookie).
+
+1. **App namespace:** `Certificate` (Let’s Encrypt DNS-01, same `dnsNames` as the hostname), `HTTPRoute` (HTTPS + HTTP→HTTPS redirect), `ReferenceGrant` so `gateway-public` / `gateway-internal` can use the TLS Secret.
+2. **HTTPS `HTTPRoute`:** `parentRefs` → `gateway-public` or `gateway-internal`, `sectionName: https-<short-name>`, `hostnames:`, `backendRefs` to the Service.
+3. **Redirect `HTTPRoute`:** same hostname, `sectionName: http`, `RequestRedirect` to HTTPS 301.
+4. **Interim Gateway listener** (until [Phase 8](#phase-8--wildcard-tls--freeze-gateway-listeners)): add a hostname-scoped HTTPS listener on the matching Gateway (`certificateRefs` to the app Secret). **Phase 8** is when a new subdomain needs **only** an `HTTPRoute` (wildcard + apex listeners stay frozen).
+5. **Flux:** app `Kustomization` `dependsOn: kgateway` (and cert-manager / lets-encrypt as today).
+6. **DNS:** public hostnames inherit CNAME→`home.bradandmarsha.com` from `gateway-public`’s `external-dns.alpha.kubernetes.io/target`. Internal hostnames publish **A → `.236`**. Apex `home.bradandmarsha.com` stays on route53-ddns; that HTTPRoute keeps `external-dns/exclude`.
+7. **Index tile:** `index.home.bradandmarsha.com/*` annotations on the HTTPS `HTTPRoute` (not Ingress).
+8. **Policies if needed:** cookie affinity → `BackendConfigPolicy` Maglev (acruet); backend HTTPS → `BackendConfigPolicy` skip-verify + SNI, **no ALPN** (Ceph); large OIDC headers already covered by `ListenerPolicy` `maxRequestHeadersKb: 128` on `gateway-public`.
 
 ---
 
@@ -667,7 +703,8 @@ Re-add hostname-scoped listeners + per-app cert refs from git; keep wildcard cer
 | `iac/kustomize/metal-lb/overlays/home-pool.yaml` | Public L2 pool |
 | `iac/kustomize/metal-lb/overlays/home-pool-internal.yaml` | Internal L2 pool |
 | `iac/kustomize/kgateway/overlays/gateways/` | Public/internal Gateways + MetalLB `GatewayParameters` |
-| `iac/kustomize/flask-hello-world/base/httproute.yaml` | Canary HTTPRoute |
+| `iac/kustomize/flask-hello-world/` | Copy for new public hostnames (Certificate, HTTPRoute, ReferenceGrant) |
+| [Onboarding a new hostname](#onboarding-a-new-hostname) | Current new-app recipe (until Phase 8) |
 | `iac/kustomize/external-dns/` | DNS sources (`gateway-httproute`) |
 | `iac/kustomize/lets-encrypt/base/cluster-issuer.yaml` | DNS-01 issuer (unchanged) |
 | `iac/kustomize/fluxcd/flux-system/networkpolicy-flux-web-ingress.yaml` | Allows `gateway-internal` proxies only |
