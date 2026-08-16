@@ -22,6 +22,4 @@ spec:
     provider: sops
   dependsOn:
     - name: acruet-cnpg
-    - name: cert-manager
-    - name: lets-encrypt
     - name: kgateway

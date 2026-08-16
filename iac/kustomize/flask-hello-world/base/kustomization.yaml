@@ -4,9 +4,7 @@ kind: Kustomization
 namespace: default
 
 resources:
-  - certificate.yaml
   - deployment.yaml
   - httproute.yaml
-  - referencegrant-gateway-tls.yaml
   - rbac.yaml
   - pvc.yaml

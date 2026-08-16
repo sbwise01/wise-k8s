@@ -3,9 +3,7 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
-  - certificate.yaml
   - httproute.yaml
-  - referencegrant-gateway-tls.yaml
   - db-credentials-sync.yaml
   - keycloak.yaml
   - realm-import.yaml
