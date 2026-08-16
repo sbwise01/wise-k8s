@@ -650,16 +650,17 @@ Copy **`iac/kustomize/flask-hello-world/`** HTTPRoutes (simplest public app) or 
 
 ### Verify (after merge)
 
-```bash
-kubectl -n kgateway-system get certificate gateway-home-tls
-kubectl get gateway -n kgateway-system gateway-public gateway-internal -o yaml | grep -E 'name: https|hostname:'
-# HTTPRoutes Accepted on https-wildcard (apex still https-home until contract)
-```
+**Verified 2026-08-16** after `#27` (`8f60f52`):
 
-- [ ] `openssl s_client` / browser: subdomain and apex present expected LE chain (SAN includes wildcard + apex)
-- [ ] Spot-check several hosts (public + internal) over wildcard listener (`server: envoy`)
-- [ ] Add a throwaway HTTPRoute hostname under `*.home…` **without** editing Gateway — route Accepted and serves
-- [ ] After contract: no remaining per-host HTTPS listeners on either Gateway
+| Check | Result |
+|-------|--------|
+| `gateway-home-tls` | Ready in ~93s. SAN `*.home.bradandmarsha.com` + `home.bradandmarsha.com` |
+| `https-wildcard` Programmed | True (public + internal) after Secret existed |
+| Apex `home.bradandmarsha.com` | 200 envoy — still `https-home` + app cert |
+| Subdomain HTTPS after HTTPRoute switch | **404 envoy** — leftover per-host listeners win SNI; routes are on `https-wildcard` with `attachedRoutes: 0` on the exact-host listeners |
+| Throwaway HTTPRoute without Gateway edit | Blocked until per-host listeners are removed |
+
+**Contract is required immediately** (not a soak): delete unused per-host HTTPS listeners (and placeholder `https`) so SNI for `foo.home…` lands on `https-wildcard`. Apex stays `https-home` until renamed to `https-apex`.
 
 ### Exit criteria
 
