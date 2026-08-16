@@ -1,7 +1,7 @@
-# Allow nginx-internal and kgateway-internal proxies to reach the Flux Web UI
-# (port 9080). FluxInstance networkPolicy creates allow-egress (same-namespace
-# only) and allow-scraping (8080 only); 9080 is not reachable from other
-# namespaces without this. Keep both from-rules during dual-run.
+# Allow the internal Gateway proxy to reach the Flux Web UI (port 9080).
+# FluxInstance networkPolicy creates allow-egress (same-namespace only) and
+# allow-scraping (8080 only); 9080 is not reachable from other namespaces
+# without this.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -15,13 +15,6 @@ spec:
     - Ingress
   ingress:
     - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: ingress-nginx-internal
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/name: ingress-nginx
-              app.kubernetes.io/component: controller
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: kgateway-system

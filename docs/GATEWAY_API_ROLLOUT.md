@@ -2,9 +2,9 @@
 
 Replace **ingress-nginx** (public + internal) with **Kubernetes Gateway API** using **[kgateway](https://kgateway.dev/)** as the control plane, keeping **MetalLB layer-2** as the on-LAN VIP advertisement for both public and internal edge traffic.
 
-**Status:** Phase 5 contract (2026-08-16) — WAN DNAT **option B** to `192.168.40.217` verified; Ingress objects removed; ingress-nginx controllers remain until Phase 6. Decisions below are **locked**; revise only via PR.
+**Status:** Phase 6 (2026-08-16) — remove idle ingress-nginx; edge is kgateway + MetalLB L2. Decisions below are **locked**; revise only via PR.
 
-**README backlog:** [To Do #1](../README.md) — *Replace Ingress' with Gateway API*.
+**README:** [To Do #1](../README.md) marked done 2026-08-16. Phase 8 (wildcard TLS) remains.
 
 ---
 
@@ -60,7 +60,7 @@ DNS (unchanged model)
 | 2a | Pinned versions | Gateway API **v1.6.1** (standard channel); kgateway / kgateway-crds charts **2.4.2** (rendered into `iac/kustomize/kgateway/base/2.4.2/source/`) |
 | 3 | Edge topology | **Two Gateways** in `kgateway-system`: `gateway-public` (pool `home-pool`) and `gateway-internal` (pool `home-pool-internal`), each with a matching `GatewayParameters` (`externalTrafficPolicy: Local` + MetalLB pool annotation) |
 | 4 | MetalLB integration | Gateways create `Service` type `LoadBalancer`; annotate with `metallb.io/address-pool`; prefer `externalTrafficPolicy: Local` (match ingress-nginx) |
-| 5 | Dual-run strategy | **Expand → migrate → contract** — kgateway alongside ingress-nginx until all routes cut over |
+| 5 | Dual-run strategy | **Expand → migrate → contract** — kgateway alongside ingress-nginx until all routes cut over (**complete Phase 6**) |
 | 6 | Canary app | **flask-hello-world** (simple public Ingress, no nginx-specific annotations) |
 | 7 | TLS (interim → target) | **Interim (Phases 3–7):** keep per-app Let’s Encrypt `Certificate` CRs; attach via **hostname-scoped HTTPS listeners** (one listener per host + cert), plus Phase 2 placeholder `gateway-edge-tls`. **Target (Phase 8):** platform-owned wildcard `*.home.bradandmarsha.com` (and apex `home.bradandmarsha.com` — wildcards do not cover the apex) on stable Gateway HTTPS listeners so **new apps need only an `HTTPRoute`**, not a Gateway edit — Gateway API [separation of duties](https://gateway-api.sigs.k8s.io/concepts/security/) (infra owns Gateway; apps own Routes). |
 | 8 | DNS cutover | Enable external-dns **`gateway-httproute`** (and RBAC) before deleting Ingresses; keep public CNAME→apex pattern where used today |
@@ -81,17 +81,17 @@ Homelab public ingress is **not** cloud LB. Path is:
 **Implications**
 
 - kgateway must expose Gateways as **LoadBalancer** Services (not NodePort-only) so MetalLB assigns VIPs.
-- Pool selection must be explicit (`metallb.io/address-pool: home-pool` vs `home-pool-internal`) — same pattern as `ingress-nginx` overlays.
-- **Do not** run two Services claiming the same VIP. Dual-run = two public VIPs until nginx is removed.
-- L2 means speakers must run on nodes that can ARP on that L2 segment (already true for ingress-nginx).
-- After nginx removal, update any **router port-forward** or docs that hardcode `192.168.40.216` (see KEYCLOAK.md).
+- Pool selection must be explicit (`metallb.io/address-pool: home-pool` vs `home-pool-internal`).
+- **Do not** run two Services claiming the same VIP. Dual-run used nginx `.216` + Gateway `.217`; nginx is removed in Phase 6.
+- L2 means speakers must run on nodes that can ARP on that L2 segment.
+- Router WAN 443 DNAT already targets `192.168.40.217` (Phase 5 option B). Remaining `.216` docs (KEYCLOAK.md) are Phase 7.
 
 **Pools (current)**
 
 | Pool | CIDR range | Used by today | Target Gateway |
 |------|------------|---------------|----------------|
-| `home-pool` | `192.168.40.216–234` | ingress-nginx public (`.216`) | `gateway-public` |
-| `home-pool-internal` | `192.168.40.235–253` | ingress-nginx-internal | `gateway-internal` |
+| `home-pool` | `192.168.40.216–234` | `gateway-public` (`.217`; `.216` reclaimed after nginx removal) | `gateway-public` |
+| `home-pool-internal` | `192.168.40.235–253` | `gateway-internal` (`.236`; `.235` reclaimed after nginx removal) | `gateway-internal` |
 
 ---
 
@@ -126,7 +126,7 @@ Migrate **one hostname at a time**. Suggested order (risk ascending):
 
 | Host | Notes |
 |------|-------|
-| `flux-web.home.bradandmarsha.com` | Update Flux NetworkPolicy that allows only `ingress-nginx-internal` |
+| `flux-web.home.bradandmarsha.com` | NetworkPolicy allows `kgateway-system` / `gateway-internal` (nginx peers removed in Phase 6) |
 | `ceph-dashboard.home.bradandmarsha.com` | Backend **HTTPS** + SSL verify off |
 | `grafana-dashboard.home.bradandmarsha.com` | Helm Ingress patch today |
 
@@ -157,7 +157,7 @@ If a feature has no clean Gateway equivalent, document a temporary exception and
 | 3 — Canary: flask-hello-world on Gateway API | ✅ Expand complete; Ingress contracted in Phase 5 |
 | 4 — external-dns Gateway sources + dual-publish strategy | ✅ Complete (2026-08-16) — `gateway-httproute`; public CNAME→apex |
 | 5 — Convert remaining Ingresses (Waves B–D) | ✅ Contract 2026-08-16 — WAN `.217`; internal DNS → `.236`; Ingresses removed |
-| 6 — Contract: remove Ingresses, ingress-nginx, dead deps | ⬜ |
+| 6 — Contract: remove Ingresses, ingress-nginx, dead deps | ✅ Git contract (2026-08-16) — Flux prune reclaims `.216`/`.235` after merge |
 | 7 — Docs / README / KEYCLOAK.md VIP references | ⬜ |
 | 8 — Wildcard TLS + freeze Gateway listeners (SoD) | ⬜ |
 
@@ -518,7 +518,7 @@ Record: option **B**, public VIP **`192.168.40.217`**. WAN cutover date: **2026-
 
 ### Contract (2026-08-16)
 
-Ingress objects removed; HTTPRoutes remain. ingress-nginx controllers stay until Phase 6.
+Ingress objects removed; HTTPRoutes remain. ingress-nginx controllers removed in Phase 6.
 
 | Change | Detail |
 |--------|--------|
@@ -533,7 +533,7 @@ Ingress objects removed; HTTPRoutes remain. ingress-nginx controllers stay until
 - ✅ Public WAN 443 lands on `gateway-public` `.217` (option B).
 - ✅ No app Ingress objects (grafana helm Ingress deleted via patch).
 - ✅ App Flux Kustomizations depend on `kgateway`, not `ingress-nginx-*`.
-- ⬜ ingress-nginx controllers removed — **Phase 6**.
+- ✅ ingress-nginx controllers removed — **Phase 6**.
 
 ---
 
@@ -541,38 +541,42 @@ Ingress objects removed; HTTPRoutes remain. ingress-nginx controllers stay until
 
 **Goal:** No ingress-nginx controllers, classes, or Flux kustomizations.
 
-### Contract steps
+### Contract (2026-08-16)
 
-1. Confirm no Ingress objects and no Services selecting nginx controllers.
-2. Remove Flux Kustomizations:
-   - `ingress-nginx-public`
-   - `ingress-nginx-internal`
-   - entries in `fluxcd/kustomizations/kustomization.yaml`
-3. Delete `iac/kustomize/ingress-nginx/` (or archive in git history only).
-4. Remove NetworkPolicy references to `ingress-nginx-internal` (flux-web); replace with kgateway proxy selectors.
-5. Reclaim MetalLB IPs formerly held by nginx Services.
-6. Optional: tighten `home-pool` if unused addresses should stay reserved for Gateways only.
+1. ✅ No Ingress objects (Phase 5).
+2. ✅ Removed Flux Kustomizations `ingress-nginx-public` / `ingress-nginx-internal` and their entries in `fluxcd/kustomizations/kustomization.yaml`.
+3. ✅ Deleted `iac/kustomize/ingress-nginx/` (history retains it).
+4. ✅ flux-web NetworkPolicy allows only `kgateway-system` pods labeled `homelab.bradandmarsha.com/gateway=gateway-internal`.
+5. MetalLB `.216` / `.235` free after Flux prune of the nginx LoadBalancer Services (`prune: true` on the removed KS). Pools left wide (no CIDR shrink).
+6. Skipped pinning `gateway-public` to `.216` (option B already locked).
 
-### Verify
+Grafana helm Ingress stays `$patch: delete`. external-dns may keep `--source=ingress` (harmless with no Ingress objects).
+
+### Verify (after merge)
+
+FluxInstance sync of `./iac/kustomize/fluxcd` prunes the `ingress-nginx-*` Kustomization CRs; those KS then prune controllers, IngressClasses, and LB Services.
 
 ```bash
-kubectl get ns | grep ingress-nginx   # expect gone
-kubectl get ingressclass              # nginx classes gone
+kubectl -n flux-system get kustomization | grep ingress-nginx   # expect gone
+kubectl get ns | grep ingress-nginx                             # expect gone
+kubectl get ingressclass                                        # nginx classes gone
 kubectl get svc -A | grep LoadBalancer
 # only MetalLB consumers: gateway-public, gateway-internal (+ any intentional others)
 ```
 
+Spot-check public + internal HTTPS still `server: envoy`.
+
 ### Exit criteria
 
-- Cluster edge is **only** kgateway + MetalLB L2.
-- README To Do #1 marked complete with date.
+- [ ] Cluster edge is **only** kgateway + MetalLB L2 (after Flux prune).
+- [x] README To Do #1 marked complete with date.
 
 ---
 
 ## Phase 7 — Documentation
 
 - [ ] This rollout Progress table → phases 0–7 ✅ (Phase 8 may still be open)
-- [ ] `README.md` To Do #1 struck / completed (Gateway edge live; Phase 8 is hardening)
+- [x] `README.md` To Do #1 struck / completed (Gateway edge live; Phase 8 is hardening)
 - [ ] KEYCLOAK.md / app READMEs: Ingress class → Gateway; VIP if changed
 - [ ] ENGINEERING or platform notes: new apps use HTTPRoute + parentRefs, not Ingress
 - [ ] Note kgateway / Gateway API versions pinned in GitOps
@@ -662,11 +666,10 @@ Re-add hostname-scoped listeners + per-app cert refs from git; keep wildcard cer
 |------|-----|
 | `iac/kustomize/metal-lb/overlays/home-pool.yaml` | Public L2 pool |
 | `iac/kustomize/metal-lb/overlays/home-pool-internal.yaml` | Internal L2 pool |
-| `iac/kustomize/ingress-nginx/overlays/public/` | Pattern for LB + `home-pool` |
-| `iac/kustomize/ingress-nginx/overlays/internal/` | Pattern for LB + `home-pool-internal` |
-| `iac/kustomize/flask-hello-world/base/ingress.yaml` | Canary Ingress |
-| `iac/kustomize/external-dns/` | DNS sources to extend |
+| `iac/kustomize/kgateway/overlays/gateways/` | Public/internal Gateways + MetalLB `GatewayParameters` |
+| `iac/kustomize/flask-hello-world/base/httproute.yaml` | Canary HTTPRoute |
+| `iac/kustomize/external-dns/` | DNS sources (`gateway-httproute`) |
 | `iac/kustomize/lets-encrypt/base/cluster-issuer.yaml` | DNS-01 issuer (unchanged) |
-| `iac/kustomize/fluxcd/flux-system/networkpolicy-flux-web-ingress.yaml` | Must update for Gateway |
+| `iac/kustomize/fluxcd/flux-system/networkpolicy-flux-web-ingress.yaml` | Allows `gateway-internal` proxies only |
 
 External: [kgateway docs](https://kgateway.dev/docs/), [Gateway API](https://gateway-api.sigs.k8s.io/), [MetalLB usage](https://metallb.io/usage/).
