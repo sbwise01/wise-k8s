@@ -2,7 +2,7 @@
 
 Replace **ingress-nginx** (public + internal) with **Kubernetes Gateway API** using **[kgateway](https://kgateway.dev/)** as the control plane, keeping **MetalLB layer-2** as the on-LAN VIP advertisement for both public and internal edge traffic.
 
-**Status:** Phase 3 expand in progress (2026-08-08) — decisions below are **locked**; revise only via PR.
+**Status:** Phase 5 Wave B expand (2026-08-16) — decisions below are **locked**; revise only via PR.
 
 **README backlog:** [To Do #1](../README.md) — *Replace Ingress' with Gateway API*.
 
@@ -154,9 +154,9 @@ If a feature has no clean Gateway equivalent, document a temporary exception and
 | 0 — Decisions & inventory | ✅ Locked in this doc |
 | 1 — Deploy kgateway + Gateway API CRDs (no traffic) | ✅ Complete (2026-08-08) — Flux Ready; GatewayClass Accepted; no edge LB |
 | 2 — MetalLB-backed public/internal Gateways + smoke test | ✅ Complete (2026-08-08) — public `.217`, internal `.236`; nginx `.216`/`.235` unchanged |
-| 3 — Canary: flask-hello-world on Gateway API | 🔄 Expand in progress (2026-08-08) — Ingress kept until VIP/`--resolve` OK |
-| 4 — external-dns Gateway sources + dual-publish strategy | 📝 Prepared locally (soak Phase 3; do not merge until ready) |
-| 5 — Convert remaining Ingresses (Waves B–D) | ⬜ |
+| 3 — Canary: flask-hello-world on Gateway API | ✅ Expand complete (Ingress kept until Phase 5 public VIP cutover) |
+| 4 — external-dns Gateway sources + dual-publish strategy | ✅ Complete (2026-08-16) — `gateway-httproute`; public CNAME→apex |
+| 5 — Convert remaining Ingresses (Waves B–D) | 🔄 Wave B expand in progress (media / oidc / plex; Ingress kept) |
 | 6 — Contract: remove Ingresses, ingress-nginx, dead deps | ⬜ |
 | 7 — Docs / README / KEYCLOAK.md VIP references | ⬜ |
 | 8 — Wildcard TLS + freeze Gateway listeners (SoD) | ⬜ |
@@ -390,11 +390,25 @@ kubectl -n external-dns get deploy external-dns -o jsonpath='{.spec.template.spe
 
 **Goal:** Every hostname from the [inventory](#inventory--ingress--httproute-migration-order) is Gateway-only.
 
+**Public apps:** keep Ingress until router/VIP cutover (end of this phase). `--resolve` against `.217` is the Gateway data-plane test; DNS still hits nginx `.216`.
+
+### Wave B expand (2026-08-16)
+
+Same recipe as flask: hostname HTTPS listener on `gateway-public`, app-ns `ReferenceGrant`, HTTPS `HTTPRoute` + HTTP→HTTPS redirect, Flux `dependsOn: kgateway`, Ingress retained.
+
+| Host | Listener | Service |
+|------|----------|---------|
+| `media.home.bradandmarsha.com` | `https-media` | `media:80` |
+| `oidc.home.bradandmarsha.com` | `https-oidc` | `aws-iam-oidc:80` |
+| `plex.home.bradandmarsha.com` | `https-plex` | `plex-plex-media-server:32400` |
+
+Wave C (affinity / Keycloak buffers) and Wave D (Ceph `BackendTLSPolicy`, flux-web NetworkPolicy) stay on Ingress until those spikes land.
+
 ### Per-app checklist (repeat)
 
 1. **Expand:** HTTPRoute (+ TLS listener binding) + any kgateway policies for affinity / buffers / backend TLS.
 2. **Verify:** `--resolve` against Gateway VIP; then DNS; OIDC / app-specific flows.
-3. **Contract:** delete Ingress; drop `dependsOn` on `ingress-nginx-*` from that app’s Flux Kustomization.
+3. **Contract:** delete Ingress; drop `dependsOn` on `ingress-nginx-*` from that app’s Flux Kustomization. **Public hosts:** only after VIP/DNAT cutover.
 4. Update app docs (e.g. KEYCLOAK.md) if they mention ingress class or VIP.
 
 ### Wave-specific gates

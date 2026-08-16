@@ -50,3 +50,45 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    - name: https-media
+      protocol: HTTPS
+      port: 443
+      hostname: media.home.bradandmarsha.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: certificate-media
+            namespace: default
+            kind: Secret
+            group: ""
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-oidc
+      protocol: HTTPS
+      port: 443
+      hostname: oidc.home.bradandmarsha.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: certificate-aws-iam-oidc
+            namespace: default
+            kind: Secret
+            group: ""
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-plex
+      protocol: HTTPS
+      port: 443
+      hostname: plex.home.bradandmarsha.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: plex-certificate
+            namespace: default
+            kind: Secret
+            group: ""
+      allowedRoutes:
+        namespaces:
+          from: All
