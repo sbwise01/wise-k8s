@@ -4,8 +4,6 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - admin-ops-cron.yaml
-  - certificate-user.yaml
-  - certificate-admin.yaml
   - db-credentials-sync.yaml
   - deployment-user.yaml
   - deployment-admin.yaml
@@ -13,7 +11,6 @@ resources:
   - httproute-admin.yaml
   - backendconfig-acruet-user.yaml
   - backendconfig-acruet-admin.yaml
-  - referencegrant-gateway-tls.yaml
   - secrets/acruet-admin-api.yaml
   - secrets/acruet-cron.yaml
   - secrets/acruet-oidc.yaml

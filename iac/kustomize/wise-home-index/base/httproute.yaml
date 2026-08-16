@@ -11,7 +11,7 @@ spec:
   parentRefs:
     - name: gateway-public
       namespace: kgateway-system
-      sectionName: https-home
+      sectionName: https-apex
   hostnames:
     - home.bradandmarsha.com
   rules:

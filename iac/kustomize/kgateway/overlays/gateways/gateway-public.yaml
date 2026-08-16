@@ -35,17 +35,14 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
-    # Apex cannot share a listener with the wildcard (apex is not covered by *.).
-    # Still the app cert until a follow-up renames this to https-apex on gateway-home-tls.
-    - name: https-home
+    - name: https-apex
       protocol: HTTPS
       port: 443
       hostname: home.bradandmarsha.com
       tls:
         mode: Terminate
         certificateRefs:
-          - name: certificate-wise-home-index
-            namespace: default
+          - name: gateway-home-tls
             kind: Secret
             group: ""
       allowedRoutes:

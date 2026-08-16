@@ -6,9 +6,8 @@ Repository to house manifests and applications hosted in the wise-k8s homelab
 
 ## To Do list
 
-1. Replace Ingress' with Gateway API — **done 2026-08-16** (kgateway + MetalLB L2; Phase 8 wildcard TLS still open — [`docs/GATEWAY_API_ROLLOUT.md`](docs/GATEWAY_API_ROLLOUT.md))
-2. Add keycloak for idp
-3. **Keycloak a-cruet manual client config follow-up** — Phase 4 required console steps not yet GitOps'd: `keycloak-admin` operator secret (`master` service account), `acruet` client scopes (`roles` default + `a-cruet-admin` in dedicated scope for access-token role claims), `acruet` valid post-logout redirect URIs (host roots `/` for user + admin — not covered by `redirectUris` or `+`), `acruet-admin` `realm-management` service-account roles. Evaluate `KeycloakOIDCClient` CR gaps, realm import, or operator API v2 improvements when Client Admin API matures.
-4. Add actions runner controller scale set controller to cluster
-5. migrate ci workflows and cd workflows to use cluster runners
-6. replace custom cronjobs with generalized reflector impelementation
+1. Add keycloak for idp
+2. **Keycloak a-cruet manual client config follow-up** — Phase 4 required console steps not yet GitOps'd: `keycloak-admin` operator secret (`master` service account), `acruet` client scopes (`roles` default + `a-cruet-admin` in dedicated scope for access-token role claims), `acruet` valid post-logout redirect URIs (host roots `/` for user + admin — not covered by `redirectUris` or `+`), `acruet-admin` `realm-management` service-account roles. Evaluate `KeycloakOIDCClient` CR gaps, realm import, or operator API v2 improvements when Client Admin API matures.
+3. Add actions runner controller scale set controller to cluster
+4. migrate ci workflows and cd workflows to use cluster runners
+5. replace custom cronjobs with generalized reflector impelementation

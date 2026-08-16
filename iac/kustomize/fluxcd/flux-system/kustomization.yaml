@@ -4,9 +4,7 @@ resources:
   - flux-instance.yaml
   - namespace.yaml
   - operator.yaml
-  - certificate.yaml
   - httproute.yaml
-  - referencegrant-gateway-tls.yaml
   - networkpolicy-flux-web-ingress.yaml
 patches:
   - path: patches/flux-sops-irsa.yaml

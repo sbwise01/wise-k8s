@@ -4,7 +4,6 @@ kind: Kustomization
 resources:
   - ../base/v1.19.5
   - ceph-config-map.yaml
-  - certificate.yaml
   - csi-kms-config-map.yaml
   - csi-nodeplugin-sa.yaml
   - csi-provisioner-sa.yaml
@@ -12,7 +11,6 @@ resources:
   - csi-rbdplugin.yaml
   - csi-rbd-sc.yaml
   - httproute.yaml
-  - referencegrant-gateway-tls.yaml
   - backendconfig-ceph-dashboard.yaml
   - toolbox.yaml
   - monitoring-rbac.yaml
