@@ -10,3 +10,7 @@ spec:
       externalTrafficPolicy: Local
       extraAnnotations:
         metallb.io/address-pool: home-pool-internal
+    # Stable selector for flux-web NetworkPolicy (dual-run with ingress-nginx-internal).
+    podTemplate:
+      extraLabels:
+        homelab.bradandmarsha.com/gateway: gateway-internal

@@ -1,0 +1,45 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: wise-home-index
+  namespace: default
+  annotations:
+    # Apex A record is owned by route53-ddns (WAN IP). Do not let
+    # gateway-httproute publish CNAME/A for home.bradandmarsha.com.
+    external-dns.alpha.kubernetes.io/exclude: "true"
+spec:
+  parentRefs:
+    - name: gateway-public
+      namespace: kgateway-system
+      sectionName: https-home
+  hostnames:
+    - home.bradandmarsha.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: wise-home-index
+          port: 8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: wise-home-index-https-redirect
+  namespace: default
+  annotations:
+    external-dns.alpha.kubernetes.io/exclude: "true"
+spec:
+  parentRefs:
+    - name: gateway-public
+      namespace: kgateway-system
+      sectionName: http
+  hostnames:
+    - home.bradandmarsha.com
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301

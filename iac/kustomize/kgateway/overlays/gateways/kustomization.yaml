@@ -8,3 +8,4 @@ resources:
   - gateway-parameters-internal.yaml
   - gateway-public.yaml
   - gateway-internal.yaml
+  - listener-policy-public-headers.yaml

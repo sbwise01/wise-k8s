@@ -7,4 +7,6 @@ resources:
   - certificate.yaml
   - deployment.yaml
   - ingress.yaml
+  - httproute.yaml
+  - referencegrant-gateway-tls.yaml
   - rbac.yaml

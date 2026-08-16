@@ -12,6 +12,9 @@ resources:
   - csi-rbdplugin.yaml
   - csi-rbd-sc.yaml
   - ingress.yaml
+  - httproute.yaml
+  - referencegrant-gateway-tls.yaml
+  - backendconfig-ceph-dashboard.yaml
   - toolbox.yaml
   - monitoring-rbac.yaml
   - prometheus-ceph-rules.yaml

@@ -29,3 +29,59 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    - name: https-acruet-admin
+      protocol: HTTPS
+      port: 443
+      hostname: acruet-admin.home.bradandmarsha.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: acruet-admin-certificate
+            namespace: acruet
+            kind: Secret
+            group: ""
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-flux-web
+      protocol: HTTPS
+      port: 443
+      hostname: flux-web.home.bradandmarsha.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: certificate-flux-web
+            namespace: flux-system
+            kind: Secret
+            group: ""
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-ceph-dashboard
+      protocol: HTTPS
+      port: 443
+      hostname: ceph-dashboard.home.bradandmarsha.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: certificate-ceph-dashboard
+            namespace: rook-ceph
+            kind: Secret
+            group: ""
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-grafana-dashboard
+      protocol: HTTPS
+      port: 443
+      hostname: grafana-dashboard.home.bradandmarsha.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: certificate-grafana-dashboard
+            namespace: monitoring
+            kind: Secret
+            group: ""
+      allowedRoutes:
+        namespaces:
+          from: All

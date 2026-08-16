@@ -7,6 +7,8 @@ resources:
   - namespace.yaml
   - ../base/0.91.0
   - certificate.yaml
+  - httproute.yaml
+  - referencegrant-gateway-tls.yaml
 
 configMapGenerator:
   - name: ceph-cluster-dashboard
