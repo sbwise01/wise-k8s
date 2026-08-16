@@ -91,6 +91,7 @@ New public app  ──OIDC──►  Keycloak          New public app  ──►
 | 3 — Public ingress + TLS | ✅ Complete (2026-07-11) |
 | 4 — Realm + admin hardening | ✅ Complete (2026-07-12) |
 | 5 — OIDC client + a-cruet integration | Pending — product decisions locked (2026-07-12) |
+| 5.1 — GitOps leftover client / console config | Pending — cluster works; console steps not in Git (README todo) |
 | 6 — HA Keycloak + acruet-cnpg | Pending |
 | 7 — Observability, backup, optional extras | Pending |
 | 8 — End-to-end verification | Pending |
@@ -524,6 +525,70 @@ curl -s https://auth.home.bradandmarsha.com/realms/wise-k8s/.well-known/openid-c
 | Provision user | Approve signup in admin UI → Keycloak user exists in `wise-k8s` |
 | Public signup | No Keycloak login offered to applicants — a-cruet public form only |
 
+**GitOps leftovers** (console-only after Phase 4/5 bootstrap) are **[Phase 5.1](#phase-51--gitops-leftover-client--console-config)** — a-cruet login working does **not** close them.
+
+---
+
+## Phase 5.1 — GitOps leftover client / console config
+
+**Goal:** Put the a-cruet Keycloak settings that were applied in the admin console into GitOps (or document a durable CRD gap). Live OIDC already works; this phase is **reproducibility**, not a new login feature.
+
+**Status:** Pending. Source of the task list: [`README.md`](../README.md) To Do #2. Can overlap with Phase 6 HA.
+
+**Why:** `KeycloakOIDCClient` + `KeycloakRealmImport` cover client id, secret, redirect URIs, and web origins. They do **not** (today) express everything the cluster is running on. Recreating the realm or operator would drop console-only config.
+
+### In cluster today (console / not fully in Git)
+
+| Item | What exists | Gap |
+|------|-------------|-----|
+| Secret `keycloak-admin` | SOPS in `keycloak/base/secrets/keycloak-admin.yaml` (`client-id` / `client-secret`) | The **`master`** realm confidential client (operator / Admin API) was created in console; no CR owns it |
+| Client `acruet` default scope **`roles`** | Console | Not in `oidc-client-acruet.yaml` |
+| Dedicated client scope for **`a-cruet-admin`** on the **access token** | Console (role claims for admin WAR) | Not in Git; mapper/scope not in the CR |
+| Valid post-logout redirect URIs | Need host roots `https://acruet.home.bradandmarsha.com/` and `https://acruet-admin.home.bradandmarsha.com/` | `redirectUris` are `/auth/callback` only; Keycloak `+` does **not** cover `/` |
+| Client `acruet-admin` `realm-management` roles | Console after reconcile | CR cannot assign them — see comment on `oidc-client-acruet-admin.yaml` (Client Admin API v2 resolves realm roles and this client’s own roles, not `realm-management`) |
+
+Required `realm-management` client roles (narrow set used by a-cruet admin API): **`manage-users`**, **`view-users`**, **`query-users`**, **`view-realm`**.
+
+### Tasks
+
+1. **Inventory** current console state (screenshot or `kcadm` / Admin API dump) for the four items above so GitOps cannot silently drop a live setting.
+2. **Evaluate the CRD** before adding more console:
+   - `KeycloakOIDCClient` v2alpha1 fields (scopes, protocol mappers, `postLogoutRedirectUris` / equivalent, `serviceAccountRoles`)
+   - `KeycloakRealmImport` (create-only — **do not** re-import the live `wise-k8s` realm to “fix” this)
+   - Operator **Client Admin API v2** (`spec.features.enabled: client-admin-api:v2` already on the Keycloak CR) — retry `serviceAccountRoles` if a newer operator maps `realm-management`
+3. **GitOps what the CR can express** (expand `oidc-client-acruet.yaml` / `oidc-client-acruet-admin.yaml`, or a dedicated client in `master` for `keycloak-admin`). Flux-reconcile; confirm the operator does not wipe console-only fields it does not model.
+4. **Document remaining gaps** in this phase (and on the YAML comments) if the API still cannot set scopes, post-logout URIs, or `realm-management` roles. Those stay break-glass console + README until the operator catches up.
+5. **Strike README To Do #2** when every row is either in Git and reconciled, or explicitly accepted as an operator limitation with a comment + this phase note.
+
+Do **not** treat a successful a-cruet login as exit criteria — that already passed in Phase 5 / a-cruet ROLLOUT.
+
+### Verify
+
+```bash
+kubectl -n keycloak get secret keycloak-admin
+kubectl -n keycloak get keycloakoidcclient acruet acruet-admin -o yaml
+# After CR changes: operator did not reset console-only fields it cannot represent
+```
+
+| Check | Expected |
+|-------|----------|
+| `acruet` default client scopes | Includes `roles` |
+| Access token from user login | Contains `a-cruet-admin` when the user has that realm role (dedicated scope / mapper) |
+| Logout from user + admin hosts | Redirect to `https://acruet.home.bradandmarsha.com/` / `https://acruet-admin.home.bradandmarsha.com/` allowed |
+| `acruet-admin` service account | `realm-management`: `manage-users`, `view-users`, `query-users`, `view-realm` |
+| Approve signup / grant-revoke admin | Still works after reconcile (Admin API permissions intact) |
+| Secret `keycloak-admin` | Matches a GitOps-owned `master` client, **or** gap documented |
+
+### Exit criteria
+
+- [ ] Each leftover item is GitOps’d **or** recorded as an operator/CRD limitation with the console steps.
+- [ ] Flux `keycloak` Ready; a-cruet user + admin OIDC and Admin API provisioning still work.
+- [ ] `README.md` To Do #2 removed or reduced to “accepted CRD gaps” with a link here.
+
+### Rollback
+
+Revert the Keycloak client CRs; restore console settings from the inventory dump. Do not delete Secret `keycloak-admin` unless a replacement client is already working.
+
 ---
 
 ## Phase 6 — HA Keycloak + application database
@@ -628,7 +693,7 @@ kubectl -n keycloak delete pod -l app=keycloak --wait=false
 | `iac/kustomize/acruet/` | a-cruet user + admin Tomcat deployments, HTTPRoutes, SOPS secrets |
 | `iac/kustomize/acruet-cnpg/` | CNPG cluster for a-cruet |
 | `iac/kustomize/keycloak/base/oidc-client-acruet*.yaml` | Phase 5 Keycloak clients |
-| `README.md` | Remove Keycloak todo when Phase 8 passes |
+| `README.md` | Remove “Add keycloak for idp” when Phase 8 passes; remove To Do #2 when Phase 5.1 passes |
 
 ---
 
@@ -641,8 +706,9 @@ kubectl -n keycloak delete pod -l app=keycloak --wait=false
 5. Phase 4 realm + admin hardening
 6. a-cruet ROLLOUT Phases 1–3 (scaffold + `acruet-cnpg` + platform deploy) — see `a-cruet/ROLLOUT.md`
 7. Phase 5 OIDC clients + a-cruet OIDC integration
-8. Phase 6 HA scale (Keycloak + `acruet-cnpg` already 3-instance)
-9. Phase 7–8 ops + verification
+8. Phase 5.1 GitOps leftover client / console config (can overlap Phase 6)
+9. Phase 6 HA scale (Keycloak + `acruet-cnpg` already 3-instance)
+10. Phase 7–8 ops + verification
 
 **Do not** expose Keycloak publicly before hostname/TLS/proxy settings are correct — misconfigured `frontendUrl` causes redirect loops.
 
