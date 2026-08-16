@@ -1,0 +1,45 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: plex-media-server
+  namespace: default
+  annotations:
+    index.home.bradandmarsha.com/enabled: "true"
+    index.home.bradandmarsha.com/name: "Wise k8s Plex"
+    index.home.bradandmarsha.com/image: "https://media.home.bradandmarsha.com/media/plex-icon-filled-256.png"
+    index.home.bradandmarsha.com/description: "Plex media server for the home cluster"
+    index.home.bradandmarsha.com/weight: "10"
+spec:
+  parentRefs:
+    - name: gateway-public
+      namespace: kgateway-system
+      sectionName: https-plex
+  hostnames:
+    - plex.home.bradandmarsha.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: plex-plex-media-server
+          port: 32400
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: plex-media-server-https-redirect
+  namespace: default
+spec:
+  parentRefs:
+    - name: gateway-public
+      namespace: kgateway-system
+      sectionName: http
+  hostnames:
+    - plex.home.bradandmarsha.com
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301

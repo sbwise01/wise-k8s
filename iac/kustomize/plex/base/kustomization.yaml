@@ -6,6 +6,8 @@ namespace: default
 resources:
   - certificate.yaml
   - ingress.yaml
+  - httproute.yaml
+  - referencegrant-gateway-tls.yaml
   - pvc.yaml
   - rbac.yaml
   - statefulset.yaml
