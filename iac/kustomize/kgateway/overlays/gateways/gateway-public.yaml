@@ -92,3 +92,45 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    - name: https-auth
+      protocol: HTTPS
+      port: 443
+      hostname: auth.home.bradandmarsha.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: keycloak-certificate
+            namespace: keycloak
+            kind: Secret
+            group: ""
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-acruet
+      protocol: HTTPS
+      port: 443
+      hostname: acruet.home.bradandmarsha.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: acruet-user-certificate
+            namespace: acruet
+            kind: Secret
+            group: ""
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-home
+      protocol: HTTPS
+      port: 443
+      hostname: home.bradandmarsha.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: certificate-wise-home-index
+            namespace: default
+            kind: Secret
+            group: ""
+      allowedRoutes:
+        namespaces:
+          from: All

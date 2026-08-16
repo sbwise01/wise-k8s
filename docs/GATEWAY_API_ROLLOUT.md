@@ -2,7 +2,7 @@
 
 Replace **ingress-nginx** (public + internal) with **Kubernetes Gateway API** using **[kgateway](https://kgateway.dev/)** as the control plane, keeping **MetalLB layer-2** as the on-LAN VIP advertisement for both public and internal edge traffic.
 
-**Status:** Phase 5 Wave B expand (2026-08-16) — decisions below are **locked**; revise only via PR.
+**Status:** Phase 5 Wave C/D expand (2026-08-16) — public VIP cutover is **option B** (router DNAT → `192.168.40.217`); decisions below are **locked**; revise only via PR.
 
 **README backlog:** [To Do #1](../README.md) — *Replace Ingress' with Gateway API*.
 
@@ -14,7 +14,8 @@ Replace **ingress-nginx** (public + internal) with **Kubernetes Gateway API** us
 Internet (WAN)
     │
     │  Port-forward / hairpin on home router
-    │  (today: WAN → 192.168.40.216 ingress-nginx public VIP)
+    │  (after Phase 5 option B: WAN → 192.168.40.217 gateway-public VIP;
+    │   until then: WAN → 192.168.40.216 ingress-nginx public VIP)
     ▼
 LAN 192.168.40.0/24
     │
@@ -64,7 +65,7 @@ DNS (unchanged model)
 | 6 | Canary app | **flask-hello-world** (simple public Ingress, no nginx-specific annotations) |
 | 7 | TLS (interim → target) | **Interim (Phases 3–7):** keep per-app Let’s Encrypt `Certificate` CRs; attach via **hostname-scoped HTTPS listeners** (one listener per host + cert), plus Phase 2 placeholder `gateway-edge-tls`. **Target (Phase 8):** platform-owned wildcard `*.home.bradandmarsha.com` (and apex `home.bradandmarsha.com` — wildcards do not cover the apex) on stable Gateway HTTPS listeners so **new apps need only an `HTTPRoute`**, not a Gateway edit — Gateway API [separation of duties](https://gateway-api.sigs.k8s.io/concepts/security/) (infra owns Gateway; apps own Routes). |
 | 8 | DNS cutover | Enable external-dns **`gateway-httproute`** (and RBAC) before deleting Ingresses; keep public CNAME→apex pattern where used today |
-| 9 | Public VIP cutover | During dual-run, public Gateway gets a **new** IP from `home-pool` (do **not** steal `192.168.40.216` while nginx still holds it). Final cutover: move router DNAT / reclaim `.216` for Gateway **or** leave Gateway on new VIP and point router at it — pick one in Phase 5 checklist |
+| 9 | Public VIP cutover | **Option B (locked 2026-08-16):** leave `gateway-public` on dual-run VIP **`192.168.40.217`**; retarget home-router WAN DNAT for TCP **80 and 443** from nginx `.216` → Gateway `.217`. Do **not** change internal nginx `.235` / `gateway-internal` `.236`. |
 | 10 | Out of scope (v1) | HTTP-01 challenges, IPv6 dual-stack, replacing MetalLB, EnvoyFilter/advanced mesh, merging public+internal into one Gateway |
 
 ---
@@ -138,9 +139,9 @@ Resolve **before** migrating the owning app (spike in Phase 2 / early Wave C–D
 
 | nginx annotation / behavior | Apps | Gateway / kgateway approach (investigate & lock) |
 |-----------------------------|------|--------------------------------------------------|
-| `affinity: cookie` + session-cookie-* | acruet user/admin | kgateway session affinity / cookie policy (or sticky via app redesign — prefer Gateway policy) |
-| `proxy-buffer-size: 128k` | Keycloak | Envoy buffer / kgateway HTTP listener options |
-| `backend-protocol: HTTPS` + `proxy-ssl-verify: off` | Ceph dashboard | `BackendTLSPolicy` and/or kgateway upstream TLS |
+| `affinity: cookie` + session-cookie-* | acruet user/admin | **Locked:** kgateway `BackendConfigPolicy` Maglev cookie hash (`acruet-user-route` / `acruet-admin-route`) |
+| `proxy-buffer-size: 128k` | Keycloak | **Locked:** `ListenerPolicy` `maxRequestHeadersKb: 128` on `gateway-public` |
+| `backend-protocol: HTTPS` + `proxy-ssl-verify: off` | Ceph dashboard | **Locked:** kgateway `BackendConfigPolicy` upstream TLS `insecureSkipVerify: true` (not `BackendTLSPolicy`) |
 | Default body/timeout sizes | plex, others | Confirm defaults; raise if uploads fail |
 
 If a feature has no clean Gateway equivalent, document a temporary exception and keep that Ingress until solved — **do not** block Wave A/B.
@@ -156,7 +157,7 @@ If a feature has no clean Gateway equivalent, document a temporary exception and
 | 2 — MetalLB-backed public/internal Gateways + smoke test | ✅ Complete (2026-08-08) — public `.217`, internal `.236`; nginx `.216`/`.235` unchanged |
 | 3 — Canary: flask-hello-world on Gateway API | ✅ Expand complete (Ingress kept until Phase 5 public VIP cutover) |
 | 4 — external-dns Gateway sources + dual-publish strategy | ✅ Complete (2026-08-16) — `gateway-httproute`; public CNAME→apex |
-| 5 — Convert remaining Ingresses (Waves B–D) | 🔄 Wave B expand in progress (media / oidc / plex; Ingress kept) |
+| 5 — Convert remaining Ingresses (Waves B–D) | 🔄 Wave C/D expand (Ingress kept; WAN still nginx until router DNAT) |
 | 6 — Contract: remove Ingresses, ingress-nginx, dead deps | ⬜ |
 | 7 — Docs / README / KEYCLOAK.md VIP references | ⬜ |
 | 8 — Wildcard TLS + freeze Gateway listeners (SoD) | ⬜ |
@@ -402,7 +403,38 @@ Same recipe as flask: hostname HTTPS listener on `gateway-public`, app-ns `Refer
 | `oidc.home.bradandmarsha.com` | `https-oidc` | `aws-iam-oidc:80` |
 | `plex.home.bradandmarsha.com` | `https-plex` | `plex-plex-media-server:32400` |
 
-Wave C (affinity / Keycloak buffers) and Wave D (Ceph `BackendTLSPolicy`, flux-web NetworkPolicy) stay on Ingress until those spikes land.
+### Wave C expand (2026-08-16)
+
+Parity locked:
+
+| nginx behavior | kgateway resource |
+|----------------|-------------------|
+| `proxy-buffer-size: 128k` (Keycloak) | `ListenerPolicy` `gateway-public-http-headers` — `maxRequestHeadersKb: 128` on `gateway-public` |
+| cookie affinity (`acruet-user-route` / `acruet-admin-route`, 86400s) | `BackendConfigPolicy` Maglev cookie hash on Services `acruet-user` / `acruet-admin` |
+
+| Host | Gateway | Listener | Service | DNS during dual-run |
+|------|---------|----------|---------|---------------------|
+| `auth.home.bradandmarsha.com` | public | `https-auth` | `keycloak-service:8080` | CNAME→apex (Ingress + HTTPRoute agree) |
+| `acruet.home.bradandmarsha.com` | public | `https-acruet` | `acruet-user:8080` | CNAME→apex (Ingress + HTTPRoute agree) |
+| `home.bradandmarsha.com` | public | `https-home` | `wise-home-index:8080` | Apex A via route53-ddns; HTTPRoute `external-dns/exclude` |
+| `acruet-admin.home.bradandmarsha.com` | internal | `https-acruet-admin` | `acruet-admin:8080` | Ingress A→`.235`; HTTPRoute `external-dns/exclude` |
+
+Ingress retained. Internal HTTPRoutes are `--resolve` against `.236` only until internal DNS contract.
+
+### Wave D expand (2026-08-16)
+
+| nginx behavior | kgateway resource |
+|----------------|-------------------|
+| flux-web NetworkPolicy (nginx-internal only) | same policy also allows `kgateway-system` pods labeled `homelab.bradandmarsha.com/gateway=gateway-internal` |
+| Ceph `backend-protocol: HTTPS` + `proxy-ssl-verify: off` | `BackendConfigPolicy` `ceph-dashboard-backend-tls` (`insecureSkipVerify: true`) — not Gateway API `BackendTLSPolicy` (that CR requires a CA) |
+
+| Host | Listener | Service |
+|------|----------|---------|
+| `flux-web.home.bradandmarsha.com` | `https-flux-web` | `flux-operator:9080` |
+| `ceph-dashboard.home.bradandmarsha.com` | `https-ceph-dashboard` | `rook-ceph-mgr-dashboard:8443` |
+| `grafana-dashboard.home.bradandmarsha.com` | `https-grafana-dashboard` | `prometheus-stack-grafana:80` |
+
+Internal HTTPRoutes use `external-dns/exclude` so LAN A records stay on nginx `.235` until internal contract.
 
 ### Per-app checklist (repeat)
 
@@ -419,19 +451,77 @@ Wave C (affinity / Keycloak buffers) and Wave D (Ceph `BackendTLSPolicy`, flux-w
 | C | Keycloak login + token size; acruet user session stickiness; acruet-admin **only** on internal VIP |
 | D | flux-web NetworkPolicy allows Gateway proxy ns/labels; Ceph dashboard TLS-to-upstream; Grafana login |
 
-### Public VIP / router cutover (end of waves)
+### Public VIP / router cutover — option B (locked)
 
-Pick **one**:
+**Do not change the router until** Flux has applied Wave C/D expand **and** every **public** hostname returns 200 + Let’s Encrypt when forced to `gateway-public`:
 
-- **A (preferred if router DNAT is sticky):** Drain nginx public Service → free `192.168.40.216` → assign that IP to `gateway-public` → no router change.
-- **B:** Leave Gateway on its dual-run VIP → update router DNAT (and any docs) to the new IP.
+```bash
+VIP=192.168.40.217
+for h in \
+  flask-hello-world.home.bradandmarsha.com \
+  media.home.bradandmarsha.com \
+  oidc.home.bradandmarsha.com \
+  plex.home.bradandmarsha.com \
+  auth.home.bradandmarsha.com \
+  acruet.home.bradandmarsha.com \
+  home.bradandmarsha.com
+do
+  echo "=== $h ==="
+  curl -skI --resolve "$h:443:$VIP" "https://$h/" | head -n 20
+done
+```
 
-Record the choice and final VIP here when done.
+Optional internal `--resolve` (does **not** use WAN DNAT; skip if you only care about public cutover):
+
+```bash
+VIP=192.168.40.236
+for h in \
+  acruet-admin.home.bradandmarsha.com \
+  flux-web.home.bradandmarsha.com \
+  ceph-dashboard.home.bradandmarsha.com \
+  grafana-dashboard.home.bradandmarsha.com
+do
+  echo "=== $h ==="
+  curl -skI --resolve "$h:443:$VIP" "https://$h/" | head -n 20
+done
+```
+
+#### Home router change (WAN DNAT only)
+
+On the home router, edit the existing port-forward / DNAT rules that send **Internet TCP 80 and TCP 443** into the LAN:
+
+| Field | From (today) | To (option B) |
+|-------|----------------|---------------|
+| Protocol | TCP | TCP (unchanged) |
+| WAN / external ports | 80 and 443 | 80 and 443 (unchanged) |
+| LAN destination | **`192.168.40.216`** (ingress-nginx public) | **`192.168.40.217`** (`gateway-public`) |
+| LAN destination ports | 80 and 443 | 80 and 443 (unchanged) |
+
+**Do not** change:
+
+- Hairpin / NAT loopback **policy** (keep it enabled if browsers on LAN already use public hostnames)
+- Any rule aimed at **`192.168.40.235`** (nginx-internal) or **`.236`** (`gateway-internal`)
+- DNS (public CNAMEs still → apex; apex A still WAN via route53-ddns)
+
+If the UI shows two rules (one for 80, one for 443), update **both** destinations to `.217`. Apply/save, then from a **WAN path** (phone LTE, or LAN with hairpin):
+
+```bash
+curl -sI https://home.bradandmarsha.com/ | head
+curl -sI https://auth.home.bradandmarsha.com/ | head
+curl -sI https://acruet.home.bradandmarsha.com/ | head
+```
+
+Expect HTTP 200 or 302 and a Let’s Encrypt cert. Rollback: set both DNAT destinations back to **`192.168.40.216`**.
+
+**After WAN is verified:** contract public Ingresses in a follow-up PR (Phase 5 contract / Phase 6). Do **not** delete public Ingresses in the same change as this expand.
+
+Record: option **B**, public VIP **`192.168.40.217`**. WAN cutover date: _pending router change_.
 
 ### Exit criteria
 
-- `kubectl get ingress -A` empty (or only non-homelab leftovers explicitly waived).
-- All Flux app Kustomizations depend on Gateway stack, not `ingress-nginx-*`.
+- Public WAN 80/443 land on `gateway-public` `.217` (option B).
+- `kubectl get ingress -A` empty (or only non-homelab leftovers explicitly waived) — **after** contract PR, not this expand.
+- All Flux app Kustomizations depend on Gateway stack, not `ingress-nginx-*` — **after** contract.
 
 ---
 
@@ -533,8 +623,8 @@ Re-add hostname-scoped listeners + per-app cert refs from git; keep wildcard cer
 |------|------------|
 | Dual Ingress+HTTPRoute DNS fight (`policy=sync`) | Phase 4 rules; one publisher per hostname |
 | VIP conflict / ARP flap | Never share IP between nginx and Gateway Services |
-| Session affinity gap breaks acruet | Spike policy before Wave C; hold Ingress until ready |
-| Ceph HTTPS upstream unsupported | `BackendTLSPolicy` spike in Phase 2/5 |
+| Session affinity gap breaks acruet | Wave C: Maglev cookie `BackendConfigPolicy`; verify stickiness after `--resolve` |
+| Ceph HTTPS upstream unsupported | Wave D: `BackendConfigPolicy` skip-verify TLS origination |
 | Router still DNAT to old VIP after cutover | Phase 5 VIP checklist; LAN + WAN curl tests |
 | Flux NetworkPolicy blocks flux-web | Update in same PR as flux-web HTTPRoute |
 | kgateway chart upgrade breaks CRDs | Pin versions; stage upgrades like cert-manager |

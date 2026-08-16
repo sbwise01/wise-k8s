@@ -26,3 +26,4 @@ spec:
     - name: ingress-nginx-internal
     - name: cert-manager
     - name: lets-encrypt
+    - name: kgateway

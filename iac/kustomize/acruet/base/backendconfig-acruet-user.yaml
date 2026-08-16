@@ -1,0 +1,21 @@
+# Tomcat OIDC state is pod-local; pin browsers to one replica (nginx cookie affinity).
+apiVersion: gateway.kgateway.dev/v1alpha1
+kind: BackendConfigPolicy
+metadata:
+  name: acruet-user-sticky
+  namespace: acruet
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: acruet-user
+  loadBalancer:
+    maglev:
+      hashPolicies:
+        - cookie:
+            name: acruet-user-route
+            path: /
+            ttl: 24h
+            httpOnly: true
+            secure: true
+          terminal: true

@@ -1,0 +1,15 @@
+# Allow gateway-public (kgateway-system) to terminate TLS with this app's cert Secret.
+apiVersion: gateway.networking.k8s.io/v1
+kind: ReferenceGrant
+metadata:
+  name: allow-kgateway-tls-keycloak
+  namespace: keycloak
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: kgateway-system
+  to:
+    - group: ""
+      kind: Secret
+      name: keycloak-certificate

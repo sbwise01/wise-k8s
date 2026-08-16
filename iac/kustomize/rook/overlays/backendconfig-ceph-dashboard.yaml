@@ -1,0 +1,18 @@
+# Ceph mgr dashboard serves HTTPS with a cluster-internal cert (nginx
+# backend-protocol: HTTPS + proxy-ssl-verify: off). Gateway API BackendTLSPolicy
+# requires a CA; skip verify here matches the existing ingress-nginx exception.
+apiVersion: gateway.kgateway.dev/v1alpha1
+kind: BackendConfigPolicy
+metadata:
+  name: ceph-dashboard-backend-tls
+  namespace: rook-ceph
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: rook-ceph-mgr-dashboard
+  tls:
+    insecureSkipVerify: true
+    sni: rook-ceph-mgr-dashboard.rook-ceph.svc
+    alpnProtocols:
+      - http/1.1

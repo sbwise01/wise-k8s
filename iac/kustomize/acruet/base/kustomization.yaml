@@ -11,6 +11,11 @@ resources:
   - deployment-admin.yaml
   - ingress-user.yaml
   - ingress-admin.yaml
+  - httproute-user.yaml
+  - httproute-admin.yaml
+  - backendconfig-acruet-user.yaml
+  - backendconfig-acruet-admin.yaml
+  - referencegrant-gateway-tls.yaml
   - secrets/acruet-admin-api.yaml
   - secrets/acruet-cron.yaml
   - secrets/acruet-oidc.yaml
