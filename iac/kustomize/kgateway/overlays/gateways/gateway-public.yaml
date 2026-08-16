@@ -5,7 +5,7 @@ metadata:
   namespace: kgateway-system
   annotations:
     # external-dns v0.20 reads target from Gateway (not HTTPRoute).
-    # Keep public CNAMEs → apex (WAN A via route53-ddns), same as Ingress today.
+    # Keep public CNAMEs → apex (WAN A via route53-ddns).
     # Without this, gateway-httproute would publish A → MetalLB VIP (.217).
     external-dns.alpha.kubernetes.io/target: home.bradandmarsha.com
 spec:
@@ -22,7 +22,40 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
-    # Hostname-agnostic placeholder (self-signed) for L2 smoke / unmatched SNI.
+    # Frozen HTTPS listeners (Phase 8). New subdomains attach here — do not
+    # add per-host listeners. Per-host listeners below are leftover dual-run
+    # until the platform cert is Ready and HTTPRoutes use these sectionNames.
+    - name: https-wildcard
+      protocol: HTTPS
+      port: 443
+      hostname: "*.home.bradandmarsha.com"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: gateway-home-tls
+            kind: Secret
+            group: ""
+      allowedRoutes:
+        namespaces:
+          from: All
+    # Apex cannot dual-run with https-apex (same hostname+port). Stays on
+    # https-home + app cert until Phase 8 contract switches this listener
+    # to gateway-home-tls and renames it https-apex.
+    - name: https-home
+      protocol: HTTPS
+      port: 443
+      hostname: home.bradandmarsha.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: certificate-wise-home-index
+            namespace: default
+            kind: Secret
+            group: ""
+      allowedRoutes:
+        namespaces:
+          from: All
+    # Hostname-agnostic placeholder (self-signed) for unmatched SNI.
     - name: https
       protocol: HTTPS
       port: 443
@@ -35,7 +68,6 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
-    # Phase 3 canary — Let's Encrypt secret lives in default (see ReferenceGrant there).
     - name: https-flask-hello-world
       protocol: HTTPS
       port: 443
@@ -115,20 +147,6 @@ spec:
         certificateRefs:
           - name: acruet-user-certificate
             namespace: acruet
-            kind: Secret
-            group: ""
-      allowedRoutes:
-        namespaces:
-          from: All
-    - name: https-home
-      protocol: HTTPS
-      port: 443
-      hostname: home.bradandmarsha.com
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - name: certificate-wise-home-index
-            namespace: default
             kind: Secret
             group: ""
       allowedRoutes:

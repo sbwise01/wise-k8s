@@ -70,9 +70,9 @@ New public app  ──OIDC──►  Keycloak          New public app  ──►
 | Item | Suggested value |
 |------|-----------------|
 | Keycloak hostname | `auth.home.bradandmarsha.com` |
-| Public edge | HTTPRoute → `gateway-public` (`sectionName: https-auth`); VIP **`192.168.40.217`**; WAN TCP **443** |
+| Public edge | HTTPRoute → `gateway-public` (`sectionName: https-wildcard`); VIP **`192.168.40.217`**; WAN TCP **443** |
 | Header size | `ListenerPolicy` `maxRequestHeadersKb: 128` on `gateway-public` (OIDC cookies) |
-| TLS | cert-manager Certificate (Let's Encrypt DNS-01) + Gateway hostname listener + `ReferenceGrant` |
+| TLS | Platform Secret `gateway-home-tls` on frozen listener `https-wildcard` (per-app Certificate unused after Phase 8 soak) |
 | DNS | external-dns `gateway-httproute`; CNAME → `home.bradandmarsha.com` |
 | Storage class | `csi-rbd-sc` (Rook Ceph) |
 | Git layout | `iac/kustomize/keycloak-operator/`, `keycloak/`, `keycloak-cnpg/` |
@@ -278,7 +278,7 @@ Verified 2026-07-11:
 
 **Goal (2026-07-11):** `https://auth.home.bradandmarsha.com` on **public** ingress (`ingressClassName: nginx`).
 
-**Current edge (2026-08-16):** same hostname on **kgateway** `gateway-public` (VIP **`192.168.40.217`**, WAN TCP **443**). Manifests: `keycloak/base/httproute.yaml`, `referencegrant-gateway-tls.yaml`; HTTPS listener `https-auth` on `gateway-public`; `ListenerPolicy` `maxRequestHeadersKb: 128`. Operator ingress stays disabled. Historical nginx Ingress table below is the Phase 3 verify snapshot.
+**Current edge (2026-08-16):** same hostname on **kgateway** `gateway-public` (VIP **`192.168.40.217`**, WAN TCP **443**). Manifests: `keycloak/base/httproute.yaml` (`sectionName: https-wildcard`); `ListenerPolicy` `maxRequestHeadersKb: 128`. Operator ingress stays disabled. Historical nginx Ingress table below is the Phase 3 verify snapshot.
 
 ### Manifests
 
@@ -623,7 +623,7 @@ kubectl -n keycloak delete pod -l app=keycloak --wait=false
 |-------------|--------|
 | `iac/kustomize/keycloak-cnpg/` | CNPG Cluster + Database for Keycloak |
 | `iac/kustomize/keycloak-operator/` | Operator install (base version pin + overlay) |
-| `iac/kustomize/keycloak/` | Keycloak CR, HTTPRoute, Certificate, ReferenceGrant, namespace |
+| `iac/kustomize/keycloak/` | Keycloak CR, HTTPRoute, Certificate, namespace |
 | `iac/kustomize/fluxcd/kustomizations/keycloak*.yaml` | Flux wiring |
 | `iac/kustomize/acruet/` | a-cruet user + admin Tomcat deployments, HTTPRoutes, SOPS secrets |
 | `iac/kustomize/acruet-cnpg/` | CNPG cluster for a-cruet |

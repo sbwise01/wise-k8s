@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - issuer.yaml
   - certificate-edge-tls.yaml
+  - certificate-home-tls.yaml
   - gateway-parameters-public.yaml
   - gateway-parameters-internal.yaml
   - gateway-public.yaml

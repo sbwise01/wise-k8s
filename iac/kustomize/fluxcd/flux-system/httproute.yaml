@@ -13,7 +13,7 @@ spec:
   parentRefs:
     - name: gateway-internal
       namespace: kgateway-system
-      sectionName: https-flux-web
+      sectionName: https-wildcard
   hostnames:
     - flux-web.home.bradandmarsha.com
   rules:

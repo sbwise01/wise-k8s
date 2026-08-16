@@ -13,7 +13,7 @@ spec:
   parentRefs:
     - name: gateway-internal
       namespace: kgateway-system
-      sectionName: https-grafana-dashboard
+      sectionName: https-wildcard
   hostnames:
     - grafana-dashboard.home.bradandmarsha.com
   rules:

@@ -2,7 +2,7 @@
 
 Replace **ingress-nginx** (public + internal) with **Kubernetes Gateway API** using **[kgateway](https://kgateway.dev/)** as the control plane, keeping **MetalLB layer-2** as the on-LAN VIP advertisement for both public and internal edge traffic.
 
-**Status:** Phase 7 complete (2026-08-16) — docs match kgateway edge. Phase 8 (wildcard TLS) remains. Decisions below are **locked**; revise only via PR.
+**Status:** Phase 8 expand (2026-08-16) — platform wildcard/apex TLS + frozen listener names. Per-host listeners remain until contract. Decisions below are **locked**; revise only via PR.
 
 **README:** [To Do #1](../README.md) marked done 2026-08-16. Phase 8 (wildcard TLS) remains.
 
@@ -62,7 +62,7 @@ DNS (unchanged model)
 | 4 | MetalLB integration | Gateways create `Service` type `LoadBalancer`; annotate with `metallb.io/address-pool`; prefer `externalTrafficPolicy: Local` (match ingress-nginx) |
 | 5 | Dual-run strategy | **Expand → migrate → contract** — kgateway alongside ingress-nginx until all routes cut over (**complete Phase 6**) |
 | 6 | Canary app | **flask-hello-world** (simple public Ingress, no nginx-specific annotations) |
-| 7 | TLS (interim → target) | **Interim (Phases 3–7):** keep per-app Let’s Encrypt `Certificate` CRs; attach via **hostname-scoped HTTPS listeners** (one listener per host + cert), plus Phase 2 placeholder `gateway-edge-tls`. **Target (Phase 8):** platform-owned wildcard `*.home.bradandmarsha.com` (and apex `home.bradandmarsha.com` — wildcards do not cover the apex) on stable Gateway HTTPS listeners so **new apps need only an `HTTPRoute`**, not a Gateway edit — Gateway API [separation of duties](https://gateway-api.sigs.k8s.io/concepts/security/) (infra owns Gateway; apps own Routes). |
+| 7 | TLS (interim → target) | **Phase 8 expand:** platform `gateway-home-tls` (`*.home.bradandmarsha.com` + apex SAN) on frozen listener `https-wildcard`. Apex still `https-home` until contract (cannot dual-run two apex listeners). **Contract leftover:** per-host listeners, placeholder `https` / `gateway-edge-tls`, rename apex → `https-apex`, app-ns `ReferenceGrant`s, unused per-app `Certificate`s. |
 | 8 | DNS cutover | Enable external-dns **`gateway-httproute`** (and RBAC) before deleting Ingresses; keep public CNAME→apex pattern where used today |
 | 9 | Public VIP cutover | **Option B (locked 2026-08-16):** leave `gateway-public` on VIP **`192.168.40.217`**. Home-router WAN DNAT is TCP **443 only** (no port 80) → `.217`. Internal apps use `gateway-internal` **`.236`**. |
 | 10 | Out of scope (v1) | HTTP-01 challenges, IPv6 dual-stack, replacing MetalLB, EnvoyFilter/advanced mesh, merging public+internal into one Gateway |
@@ -159,7 +159,7 @@ If a feature has no clean Gateway equivalent, document a temporary exception and
 | 5 — Convert remaining Ingresses (Waves B–D) | ✅ Contract 2026-08-16 — WAN `.217`; internal DNS → `.236`; Ingresses removed |
 | 6 — Contract: remove Ingresses, ingress-nginx, dead deps | ✅ Complete (2026-08-16) — `#26`; nginx pruned; `.216`/`.235` free |
 | 7 — Docs / README / KEYCLOAK.md VIP references | ✅ Complete (2026-08-16) |
-| 8 — Wildcard TLS + freeze Gateway listeners (SoD) | ⬜ |
+| 8 — Wildcard TLS + freeze Gateway listeners (SoD) | 🔄 Expand (2026-08-16) — `gateway-home-tls` + `https-wildcard` / `https-apex`; contract leftover listeners after cert Ready |
 
 ---
 
@@ -598,7 +598,7 @@ Spot-check public + internal HTTPS still `server: envoy`.
 
 ## Onboarding a new hostname
 
-**Do not create `Ingress` objects.** The cluster edge is kgateway + MetalLB L2.
+**Do not create `Ingress` objects.** Do **not** edit `gateway-public` / `gateway-internal`. The cluster edge is kgateway + MetalLB L2 with frozen HTTPS listeners.
 
 | Piece | Pin |
 |-------|-----|
@@ -606,17 +606,16 @@ Spot-check public + internal HTTPS still `server: envoy`.
 | kgateway | **2.4.2** vendored YAML (`iac/kustomize/kgateway/base/2.4.2/`; re-vendor notes in that `kustomization.yaml`) |
 | Public Gateway | `gateway-public` in `kgateway-system` — VIP **`192.168.40.217`**; WAN TCP **443** DNAT |
 | Internal Gateway | `gateway-internal` in `kgateway-system` — VIP **`192.168.40.236`** (LAN A records) |
+| Platform TLS | Secret `gateway-home-tls` in `kgateway-system` (`*.home.bradandmarsha.com` + `home.bradandmarsha.com`) |
 
-Copy **`iac/kustomize/flask-hello-world/`** (simplest public app) or **`acruet/`** (public + internal + Maglev cookie).
+Copy **`iac/kustomize/flask-hello-world/`** HTTPRoutes (simplest public app) or **`acruet/`** (public + internal + Maglev cookie). Skip app `Certificate` / `ReferenceGrant` / Gateway listener edits.
 
-1. **App namespace:** `Certificate` (Let’s Encrypt DNS-01, same `dnsNames` as the hostname), `HTTPRoute` (HTTPS + HTTP→HTTPS redirect), `ReferenceGrant` so `gateway-public` / `gateway-internal` can use the TLS Secret.
-2. **HTTPS `HTTPRoute`:** `parentRefs` → `gateway-public` or `gateway-internal`, `sectionName: https-<short-name>`, `hostnames:`, `backendRefs` to the Service.
-3. **Redirect `HTTPRoute`:** same hostname, `sectionName: http`, `RequestRedirect` to HTTPS 301.
-4. **Interim Gateway listener** (until [Phase 8](#phase-8--wildcard-tls--freeze-gateway-listeners)): add a hostname-scoped HTTPS listener on the matching Gateway (`certificateRefs` to the app Secret). **Phase 8** is when a new subdomain needs **only** an `HTTPRoute` (wildcard + apex listeners stay frozen).
-5. **Flux:** app `Kustomization` `dependsOn: kgateway` (and cert-manager / lets-encrypt as today).
-6. **DNS:** public hostnames inherit CNAME→`home.bradandmarsha.com` from `gateway-public`’s `external-dns.alpha.kubernetes.io/target`. Internal hostnames publish **A → `.236`**. Apex `home.bradandmarsha.com` stays on route53-ddns; that HTTPRoute keeps `external-dns/exclude`.
-7. **Index tile:** `index.home.bradandmarsha.com/*` annotations on the HTTPS `HTTPRoute` (not Ingress).
-8. **Policies if needed:** cookie affinity → `BackendConfigPolicy` Maglev (acruet); backend HTTPS → `BackendConfigPolicy` skip-verify + SNI, **no ALPN** (Ceph); large OIDC headers already covered by `ListenerPolicy` `maxRequestHeadersKb: 128` on `gateway-public`.
+1. **HTTPS `HTTPRoute`:** `parentRefs` → `gateway-public` or `gateway-internal`, `sectionName: https-wildcard`, `hostnames:`, `backendRefs` to the Service. Apex `home.bradandmarsha.com` is special: today `sectionName: https-home` (contract will rename that listener to `https-apex` on `gateway-home-tls`).
+2. **Redirect `HTTPRoute`:** same hostname, `sectionName: http`, `RequestRedirect` to HTTPS 301.
+3. **Flux:** app `Kustomization` `dependsOn: kgateway`.
+4. **DNS:** public hostnames inherit CNAME→`home.bradandmarsha.com` from `gateway-public`’s `external-dns.alpha.kubernetes.io/target`. Internal hostnames publish **A → `.236`**. Apex stays on route53-ddns; that HTTPRoute keeps `external-dns/exclude`.
+5. **Index tile:** `index.home.bradandmarsha.com/*` annotations on the HTTPS `HTTPRoute`.
+6. **Policies if needed:** cookie affinity → `BackendConfigPolicy` Maglev (acruet); backend HTTPS → `BackendConfigPolicy` skip-verify + SNI, **no ALPN** (Ceph); large OIDC headers already covered by `ListenerPolicy` `maxRequestHeadersKb: 128` on `gateway-public`.
 
 ---
 
@@ -624,7 +623,7 @@ Copy **`iac/kustomize/flask-hello-world/`** (simplest public app) or **`acruet/`
 
 **Goal:** Converge HTTPS on platform-owned certs/listeners so app onboarding matches Gateway API separation of duties: **infra owns `Gateway`**, **apps own `HTTPRoute`** (and Services). Adding `foo.home.bradandmarsha.com` must not require editing `gateway-public` / `gateway-internal`.
 
-**When:** After Phase 6 (ingress-nginx gone) and traffic is stable on kgateway. Do **not** block Waves B–D on this — interim hostname-scoped listeners are fine during migration.
+**When:** After Phase 6 (ingress-nginx gone) and traffic is stable on kgateway.
 
 ### Why
 
@@ -632,36 +631,41 @@ Copy **`iac/kustomize/flask-hello-world/`** (simplest public app) or **`acruet/`
 |-----------------|--------|
 | One HTTPS `listener` + `certificateRefs` per hostname | Stable listeners: HTTP `:80`, HTTPS wildcard, HTTPS apex |
 | New service → Gateway YAML change in `kgateway` overlay | New service → app `HTTPRoute` (+ DNS annotations) only |
-| Per-app LE Secrets + `ReferenceGrant`s | Platform cert Secret(s) in `kgateway-system` (or certs ns) |
+| Per-app LE Secrets + `ReferenceGrant`s | Platform cert Secret `gateway-home-tls` in `kgateway-system` |
 
-### Deliverables
+### Expand (2026-08-16)
 
-1. **Certificate** (Let’s Encrypt DNS-01) covering:
-   - `*.home.bradandmarsha.com`
-   - `home.bradandmarsha.com` (apex — **not** matched by the wildcard alone)
-   Prefer one Secret with both SANs; attach to listeners as needed.
-2. **Gateway listener reshape** (public and internal as appropriate):
-   - Keep `http` `:80` (`allowedRoutes` from app namespaces / `All` as today).
-   - Replace per-host HTTPS listeners with:
-     - `hostname: "*.home.bradandmarsha.com"` → wildcard Secret
-     - `hostname: home.bradandmarsha.com` → same Secret (or apex-only Secret)
-   - Remove placeholder `gateway-edge-tls` listener once nothing relies on it.
-3. **HTTPRoutes** keep per-app `hostnames:`; they attach to the shared HTTPS listener (by `sectionName` or listener hostname match) — no per-app Gateway edits.
-4. **Contract per-app TLS wiring:** delete hostname-scoped listeners, app-ns `ReferenceGrant`s for Gateway→Secret, and (after soak) redundant per-app `Certificate` CRs if unused elsewhere.
-5. **Document the freeze:** platform PRs change Gateways; app PRs add/change HTTPRoutes only.
+1. ✅ **Certificate** `gateway-home-tls` (Let’s Encrypt DNS-01) SANs `*.home.bradandmarsha.com` + `home.bradandmarsha.com`.
+2. ✅ Frozen listener **names** for new subdomains: `https-wildcard` (`*.home…`). Apex stays `https-home` until contract (cannot dual-run two `home.bradandmarsha.com` listeners).
+3. ✅ Subdomain HTTPRoutes: `sectionName: https-wildcard`. Apex HTTPRoute unchanged (`https-home`).
+4. Per-host listeners + placeholder `https` / `gateway-edge-tls` **kept** so existing SNI stays programmed until `gateway-home-tls` is Ready (`kgateway` Flux `wait: true` + `dependsOn: lets-encrypt`).
 
-### Verify
+### Contract (after cert Ready + HTTPS verify)
 
-- [ ] `openssl s_client` / browser: subdomain and apex present expected LE chain
-- [ ] Spot-check several hosts (public + internal) over wildcard listener
+1. Delete leftover per-host HTTPS listeners and placeholder `https`.
+2. Replace `https-home` with `https-apex` on `gateway-home-tls`; point the apex HTTPRoute at `https-apex`.
+3. Delete `certificate-edge-tls` + `Issuer` `selfsigned`; delete app-ns `ReferenceGrant`s for Gateway→Secret.
+4. After soak, delete unused per-app `Certificate` CRs.
+5. Confirm Gateways are only `http` + `https-wildcard` [+ `https-apex` on public].
+
+### Verify (after merge)
+
+```bash
+kubectl -n kgateway-system get certificate gateway-home-tls
+kubectl get gateway -n kgateway-system gateway-public gateway-internal -o yaml | grep -E 'name: https|hostname:'
+# HTTPRoutes Accepted on https-wildcard (apex still https-home until contract)
+```
+
+- [ ] `openssl s_client` / browser: subdomain and apex present expected LE chain (SAN includes wildcard + apex)
+- [ ] Spot-check several hosts (public + internal) over wildcard listener (`server: envoy`)
 - [ ] Add a throwaway HTTPRoute hostname under `*.home…` **without** editing Gateway — route Accepted and serves
-- [ ] Confirm no remaining per-host HTTPS listeners on either Gateway
+- [ ] After contract: no remaining per-host HTTPS listeners on either Gateway
 
 ### Exit criteria
 
 - New subdomain apps require **no** `Gateway` manifest change.
 - Gateway HTTPS listener set is stable (http + wildcard [+ apex]); per-app cert sprawl removed or clearly deprecated.
-- ENGINEERING / rollout notes describe the SoD boundary.
+- Onboarding / ENGINEERING describe the SoD boundary.
 
 ### Rollback
 
@@ -703,7 +707,8 @@ Re-add hostname-scoped listeners + per-app cert refs from git; keep wildcard cer
 | `iac/kustomize/metal-lb/overlays/home-pool.yaml` | Public L2 pool |
 | `iac/kustomize/metal-lb/overlays/home-pool-internal.yaml` | Internal L2 pool |
 | `iac/kustomize/kgateway/overlays/gateways/` | Public/internal Gateways + MetalLB `GatewayParameters` |
-| `iac/kustomize/flask-hello-world/` | Copy for new public hostnames (Certificate, HTTPRoute, ReferenceGrant) |
+| `iac/kustomize/flask-hello-world/` | Copy HTTPRoutes for new public hostnames (`https-wildcard`) |
+| `iac/kustomize/kgateway/overlays/gateways/certificate-home-tls.yaml` | Platform wildcard + apex cert |
 | [Onboarding a new hostname](#onboarding-a-new-hostname) | Current new-app recipe (until Phase 8) |
 | `iac/kustomize/external-dns/` | DNS sources (`gateway-httproute`) |
 | `iac/kustomize/lets-encrypt/base/cluster-issuer.yaml` | DNS-01 issuer (unchanged) |
