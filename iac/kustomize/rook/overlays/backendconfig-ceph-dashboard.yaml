@@ -1,6 +1,11 @@
 # Ceph mgr dashboard serves HTTPS with a cluster-internal cert (nginx
 # backend-protocol: HTTPS + proxy-ssl-verify: off). Gateway API BackendTLSPolicy
-# requires a CA; skip verify here matches the existing ingress-nginx exception.
+# requires a CA; skip verify here matches that ingress-nginx exception.
+#
+# Do not set SNI or ALPN: post-cutover, sni=svc FQDN + alpn=http/1.1 produced
+# Envoy 503 "upstream connect error / remote connection failure". In-cluster
+# curl to :8443 succeeded. nginx did not set proxy-ssl-name. simpleTLS keeps
+# origination one-way even if the proxy has a client cert.
 apiVersion: gateway.kgateway.dev/v1alpha1
 kind: BackendConfigPolicy
 metadata:
@@ -13,6 +18,4 @@ spec:
       name: rook-ceph-mgr-dashboard
   tls:
     insecureSkipVerify: true
-    sni: rook-ceph-mgr-dashboard.rook-ceph.svc
-    alpnProtocols:
-      - http/1.1
+    simpleTLS: true

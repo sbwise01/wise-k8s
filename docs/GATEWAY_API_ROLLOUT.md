@@ -140,7 +140,7 @@ Resolve **before** migrating the owning app (spike in Phase 2 / early Wave C–D
 |-----------------------------|------|--------------------------------------------------|
 | `affinity: cookie` + session-cookie-* | acruet user/admin | **Locked:** kgateway `BackendConfigPolicy` Maglev cookie hash (`acruet-user-route` / `acruet-admin-route`) |
 | `proxy-buffer-size: 128k` | Keycloak | **Locked:** `ListenerPolicy` `maxRequestHeadersKb: 128` on `gateway-public` |
-| `backend-protocol: HTTPS` + `proxy-ssl-verify: off` | Ceph dashboard | **Locked:** kgateway `BackendConfigPolicy` upstream TLS `insecureSkipVerify: true` (not `BackendTLSPolicy`) |
+| `backend-protocol: HTTPS` + `proxy-ssl-verify: off` | Ceph dashboard | **Locked:** kgateway `BackendConfigPolicy` `insecureSkipVerify` + `simpleTLS` (no SNI/ALPN) |
 | Default body/timeout sizes | plex, others | Confirm defaults; raise if uploads fail |
 
 If a feature has no clean Gateway equivalent, document a temporary exception and keep that Ingress until solved — **do not** block Wave A/B.
@@ -425,7 +425,7 @@ Ingress retained. Internal HTTPRoutes are `--resolve` against `.236` only until 
 | nginx behavior | kgateway resource |
 |----------------|-------------------|
 | flux-web NetworkPolicy (nginx-internal only) | same policy also allows `kgateway-system` pods labeled `homelab.bradandmarsha.com/gateway=gateway-internal` |
-| Ceph `backend-protocol: HTTPS` + `proxy-ssl-verify: off` | `BackendConfigPolicy` `ceph-dashboard-backend-tls` (`insecureSkipVerify: true`) — not Gateway API `BackendTLSPolicy` (that CR requires a CA) |
+| Ceph `backend-protocol: HTTPS` + `proxy-ssl-verify: off` | `BackendConfigPolicy` `ceph-dashboard-backend-tls` — `insecureSkipVerify` + `simpleTLS` only (no SNI/ALPN; those caused 503 after DNS cutover) |
 
 | Host | Listener | Service |
 |------|----------|---------|
