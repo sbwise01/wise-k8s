@@ -22,23 +22,11 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    # One HTTPS listener (no hostname). Splitting wildcard vs apex on the same
+    # VIP + cert lets Chrome HTTP/2-coalesce; SNI stays apex and subdomains 404.
     - name: https-wildcard
       protocol: HTTPS
       port: 443
-      hostname: "*.home.bradandmarsha.com"
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - name: gateway-home-tls
-            kind: Secret
-            group: ""
-      allowedRoutes:
-        namespaces:
-          from: All
-    - name: https-apex
-      protocol: HTTPS
-      port: 443
-      hostname: home.bradandmarsha.com
       tls:
         mode: Terminate
         certificateRefs:
