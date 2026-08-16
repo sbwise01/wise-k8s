@@ -9,8 +9,6 @@ resources:
   - db-credentials-sync.yaml
   - deployment-user.yaml
   - deployment-admin.yaml
-  - ingress-user.yaml
-  - ingress-admin.yaml
   - httproute-user.yaml
   - httproute-admin.yaml
   - backendconfig-acruet-user.yaml
