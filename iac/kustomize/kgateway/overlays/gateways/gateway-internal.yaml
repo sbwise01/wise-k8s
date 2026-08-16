@@ -17,6 +17,21 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    # Frozen HTTPS listener (Phase 8). No apex on the internal Gateway.
+    # Per-host listeners below are leftover dual-run until HTTPRoutes attach here.
+    - name: https-wildcard
+      protocol: HTTPS
+      port: 443
+      hostname: "*.home.bradandmarsha.com"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: gateway-home-tls
+            kind: Secret
+            group: ""
+      allowedRoutes:
+        namespaces:
+          from: All
     - name: https
       protocol: HTTPS
       port: 443

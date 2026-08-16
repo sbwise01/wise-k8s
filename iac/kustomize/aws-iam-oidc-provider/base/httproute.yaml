@@ -7,7 +7,7 @@ spec:
   parentRefs:
     - name: gateway-public
       namespace: kgateway-system
-      sectionName: https-oidc
+      sectionName: https-wildcard
   hostnames:
     - oidc.home.bradandmarsha.com
   rules:

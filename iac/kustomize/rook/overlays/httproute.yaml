@@ -13,7 +13,7 @@ spec:
   parentRefs:
     - name: gateway-internal
       namespace: kgateway-system
-      sectionName: https-ceph-dashboard
+      sectionName: https-wildcard
   hostnames:
     - ceph-dashboard.home.bradandmarsha.com
   rules:

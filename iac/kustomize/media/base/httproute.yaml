@@ -7,7 +7,7 @@ spec:
   parentRefs:
     - name: gateway-public
       namespace: kgateway-system
-      sectionName: https-media
+      sectionName: https-wildcard
   hostnames:
     - media.home.bradandmarsha.com
   rules:

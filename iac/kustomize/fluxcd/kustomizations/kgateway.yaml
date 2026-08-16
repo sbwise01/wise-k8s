@@ -8,12 +8,14 @@ spec:
   path: ./iac/kustomize/kgateway/overlays
   prune: true
   wait: true
-  timeout: 10m
+  timeout: 15m
   sourceRef:
     kind: GitRepository
     name: flux-system
   # MetalLB assigns VIP for Gateway LoadBalancer Services; cert-manager issues
-  # the placeholder edge TLS secret used by HTTPS listeners.
+  # TLS secrets. lets-encrypt provides ClusterIssuer letsencrypt-prod for the
+  # platform wildcard/apex Certificate.
   dependsOn:
     - name: metal-lb
     - name: cert-manager
+    - name: lets-encrypt

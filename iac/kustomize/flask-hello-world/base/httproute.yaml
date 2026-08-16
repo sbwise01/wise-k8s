@@ -4,7 +4,7 @@ metadata:
   name: flask-hello-world
   namespace: default
   annotations:
-    # Index site metadata (also still on Ingress during dual-run; move-only at contract).
+    # Index site metadata.
     index.home.bradandmarsha.com/enabled: "true"
     index.home.bradandmarsha.com/name: "Flask Hello World"
     index.home.bradandmarsha.com/image: "https://media.home.bradandmarsha.com/media/flaskred.png"
@@ -16,7 +16,7 @@ spec:
   parentRefs:
     - name: gateway-public
       namespace: kgateway-system
-      sectionName: https-flask-hello-world
+      sectionName: https-wildcard
   hostnames:
     - flask-hello-world.home.bradandmarsha.com
   rules:
