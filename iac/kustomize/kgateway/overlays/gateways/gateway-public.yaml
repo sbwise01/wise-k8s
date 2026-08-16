@@ -22,9 +22,6 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
-    # Frozen HTTPS listeners (Phase 8). New subdomains attach here — do not
-    # add per-host listeners. Per-host listeners below are leftover dual-run
-    # until the platform cert is Ready and HTTPRoutes use these sectionNames.
     - name: https-wildcard
       protocol: HTTPS
       port: 443
@@ -38,9 +35,8 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
-    # Apex cannot dual-run with https-apex (same hostname+port). Stays on
-    # https-home + app cert until Phase 8 contract switches this listener
-    # to gateway-home-tls and renames it https-apex.
+    # Apex cannot share a listener with the wildcard (apex is not covered by *.).
+    # Still the app cert until a follow-up renames this to https-apex on gateway-home-tls.
     - name: https-home
       protocol: HTTPS
       port: 443
@@ -50,103 +46,6 @@ spec:
         certificateRefs:
           - name: certificate-wise-home-index
             namespace: default
-            kind: Secret
-            group: ""
-      allowedRoutes:
-        namespaces:
-          from: All
-    # Hostname-agnostic placeholder (self-signed) for unmatched SNI.
-    - name: https
-      protocol: HTTPS
-      port: 443
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - name: gateway-edge-tls
-            kind: Secret
-            group: ""
-      allowedRoutes:
-        namespaces:
-          from: All
-    - name: https-flask-hello-world
-      protocol: HTTPS
-      port: 443
-      hostname: flask-hello-world.home.bradandmarsha.com
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - name: certificate-flask-hello-world
-            namespace: default
-            kind: Secret
-            group: ""
-      allowedRoutes:
-        namespaces:
-          from: All
-    - name: https-media
-      protocol: HTTPS
-      port: 443
-      hostname: media.home.bradandmarsha.com
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - name: certificate-media
-            namespace: default
-            kind: Secret
-            group: ""
-      allowedRoutes:
-        namespaces:
-          from: All
-    - name: https-oidc
-      protocol: HTTPS
-      port: 443
-      hostname: oidc.home.bradandmarsha.com
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - name: certificate-aws-iam-oidc
-            namespace: default
-            kind: Secret
-            group: ""
-      allowedRoutes:
-        namespaces:
-          from: All
-    - name: https-plex
-      protocol: HTTPS
-      port: 443
-      hostname: plex.home.bradandmarsha.com
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - name: plex-certificate
-            namespace: default
-            kind: Secret
-            group: ""
-      allowedRoutes:
-        namespaces:
-          from: All
-    - name: https-auth
-      protocol: HTTPS
-      port: 443
-      hostname: auth.home.bradandmarsha.com
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - name: keycloak-certificate
-            namespace: keycloak
-            kind: Secret
-            group: ""
-      allowedRoutes:
-        namespaces:
-          from: All
-    - name: https-acruet
-      protocol: HTTPS
-      port: 443
-      hostname: acruet.home.bradandmarsha.com
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - name: acruet-user-certificate
-            namespace: acruet
             kind: Secret
             group: ""
       allowedRoutes:
