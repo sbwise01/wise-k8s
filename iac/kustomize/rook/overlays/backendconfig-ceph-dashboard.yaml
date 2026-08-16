@@ -2,10 +2,10 @@
 # backend-protocol: HTTPS + proxy-ssl-verify: off). Gateway API BackendTLSPolicy
 # requires a CA; skip verify here matches that ingress-nginx exception.
 #
-# Do not set SNI or ALPN: post-cutover, sni=svc FQDN + alpn=http/1.1 produced
-# Envoy 503 "upstream connect error / remote connection failure". In-cluster
-# curl to :8443 succeeded. nginx did not set proxy-ssl-name. simpleTLS keeps
-# origination one-way even if the proxy has a client cert.
+# Envoy stats after cutover: ssl.handshake=0, ssl.connection_error>0. Ceph
+# dashboard accepts TLS 1.3 (curl --tlsv1.3) and rejects TLS 1.2. TLS 1.3
+# effectively requires SNI; omitting it produced 503 "remote connection
+# failure". Do not set ALPN — http/1.1-only ALPN with SNI also 503'd.
 apiVersion: gateway.kgateway.dev/v1alpha1
 kind: BackendConfigPolicy
 metadata:
@@ -19,3 +19,7 @@ spec:
   tls:
     insecureSkipVerify: true
     simpleTLS: true
+    sni: rook-ceph-mgr-dashboard.rook-ceph.svc
+    parameters:
+      minVersion: "1.2"
+      maxVersion: "1.3"
