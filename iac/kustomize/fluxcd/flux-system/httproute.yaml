@@ -4,8 +4,6 @@ metadata:
   name: flux-web
   namespace: flux-system
   annotations:
-    # Keep Ingress as DNS owner during dual-run (A → nginx-internal .235).
-    external-dns.alpha.kubernetes.io/exclude: "true"
     index.home.bradandmarsha.com/enabled: "true"
     index.home.bradandmarsha.com/name: "Flux Web UI"
     index.home.bradandmarsha.com/image: "https://media.home.bradandmarsha.com/media/flux-operator.svg"
@@ -32,8 +30,6 @@ kind: HTTPRoute
 metadata:
   name: flux-web-https-redirect
   namespace: flux-system
-  annotations:
-    external-dns.alpha.kubernetes.io/exclude: "true"
 spec:
   parentRefs:
     - name: gateway-internal

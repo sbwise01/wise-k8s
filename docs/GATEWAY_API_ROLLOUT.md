@@ -2,7 +2,7 @@
 
 Replace **ingress-nginx** (public + internal) with **Kubernetes Gateway API** using **[kgateway](https://kgateway.dev/)** as the control plane, keeping **MetalLB layer-2** as the on-LAN VIP advertisement for both public and internal edge traffic.
 
-**Status:** Phase 5 Wave C/D expand (2026-08-16) — public VIP cutover is **option B** (router DNAT → `192.168.40.217`); decisions below are **locked**; revise only via PR.
+**Status:** Phase 5 contract (2026-08-16) — WAN DNAT **option B** to `192.168.40.217` verified; Ingress objects removed; ingress-nginx controllers remain until Phase 6. Decisions below are **locked**; revise only via PR.
 
 **README backlog:** [To Do #1](../README.md) — *Replace Ingress' with Gateway API*.
 
@@ -14,8 +14,7 @@ Replace **ingress-nginx** (public + internal) with **Kubernetes Gateway API** us
 Internet (WAN)
     │
     │  Port-forward / hairpin on home router
-    │  (after Phase 5 option B: WAN → 192.168.40.217 gateway-public VIP;
-    │   until then: WAN → 192.168.40.216 ingress-nginx public VIP)
+    │  (WAN TCP 443 → 192.168.40.217 gateway-public VIP)
     ▼
 LAN 192.168.40.0/24
     │
@@ -155,9 +154,9 @@ If a feature has no clean Gateway equivalent, document a temporary exception and
 | 0 — Decisions & inventory | ✅ Locked in this doc |
 | 1 — Deploy kgateway + Gateway API CRDs (no traffic) | ✅ Complete (2026-08-08) — Flux Ready; GatewayClass Accepted; no edge LB |
 | 2 — MetalLB-backed public/internal Gateways + smoke test | ✅ Complete (2026-08-08) — public `.217`, internal `.236`; nginx `.216`/`.235` unchanged |
-| 3 — Canary: flask-hello-world on Gateway API | ✅ Expand complete (Ingress kept until Phase 5 public VIP cutover) |
+| 3 — Canary: flask-hello-world on Gateway API | ✅ Expand complete; Ingress contracted in Phase 5 |
 | 4 — external-dns Gateway sources + dual-publish strategy | ✅ Complete (2026-08-16) — `gateway-httproute`; public CNAME→apex |
-| 5 — Convert remaining Ingresses (Waves B–D) | 🔄 Wave C/D expand (Ingress kept; WAN still nginx until router DNAT) |
+| 5 — Convert remaining Ingresses (Waves B–D) | ✅ Contract 2026-08-16 — WAN `.217`; internal DNS → `.236`; Ingresses removed |
 | 6 — Contract: remove Ingresses, ingress-nginx, dead deps | ⬜ |
 | 7 — Docs / README / KEYCLOAK.md VIP references | ⬜ |
 | 8 — Wildcard TLS + freeze Gateway listeners (SoD) | ⬜ |
@@ -511,17 +510,30 @@ curl -sI https://auth.home.bradandmarsha.com/ | head
 curl -sI https://acruet.home.bradandmarsha.com/ | head
 ```
 
-Expect HTTP 200 or 302 and a Let’s Encrypt cert. Rollback: set both DNAT destinations back to **`192.168.40.216`**.
+Expect HTTP 200 or 302 and a Let’s Encrypt cert. Rollback: set the 443 DNAT destination back to **`192.168.40.216`**.
 
-**After WAN is verified:** contract public Ingresses in a follow-up PR (Phase 5 contract / Phase 6). Do **not** delete public Ingresses in the same change as this expand.
+**Verified 2026-08-16 (post-cutover):** DNS HTTPS to all public hosts returns `server: envoy` + Let’s Encrypt. Browser checks passed on-LAN and off-LAN. Internal hosts were still nginx `.235` until the contract PR below.
 
-Record: option **B**, public VIP **`192.168.40.217`**. WAN cutover date: _pending router change_.
+Record: option **B**, public VIP **`192.168.40.217`**. WAN cutover date: **2026-08-16**. Router: TCP **443 only** (no WAN 80 forward).
+
+### Contract (2026-08-16)
+
+Ingress objects removed; HTTPRoutes remain. ingress-nginx controllers stay until Phase 6.
+
+| Change | Detail |
+|--------|--------|
+| Public Ingresses deleted | flask, media, oidc, plex, keycloak, acruet-user, wise-home-index |
+| Internal Ingresses deleted | acruet-admin, flux-web, ceph-dashboard, grafana (`$patch: delete` on helm Ingress) |
+| Internal DNS | Drop `external-dns/exclude` on internal HTTPRoutes so they publish **A → `192.168.40.236`** |
+| Apex DNS | `home.bradandmarsha.com` still route53-ddns; HTTPRoute stays excluded |
+| Flux | `acruet` no longer `dependsOn` `ingress-nginx-*` |
 
 ### Exit criteria
 
-- Public WAN 80/443 land on `gateway-public` `.217` (option B).
-- `kubectl get ingress -A` empty (or only non-homelab leftovers explicitly waived) — **after** contract PR, not this expand.
-- All Flux app Kustomizations depend on Gateway stack, not `ingress-nginx-*` — **after** contract.
+- ✅ Public WAN 443 lands on `gateway-public` `.217` (option B).
+- ✅ No app Ingress objects (grafana helm Ingress deleted via patch).
+- ✅ App Flux Kustomizations depend on `kgateway`, not `ingress-nginx-*`.
+- ⬜ ingress-nginx controllers removed — **Phase 6**.
 
 ---
 

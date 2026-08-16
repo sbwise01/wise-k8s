@@ -40,7 +40,7 @@ patches:
   - target:
       kind: Ingress
       name: prometheus-stack-grafana
-    path: patches/ingress.yaml
+    path: patches/ingress-delete.yaml
   - target:
       kind: Deployment
       name: prometheus-stack-grafana
