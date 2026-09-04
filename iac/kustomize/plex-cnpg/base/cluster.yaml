@@ -9,10 +9,6 @@ spec:
   # for the memory backend;
   instances: 3
 
-  nodeMaintenanceWindow:
-    inProgress: true
-    reusePVC: true
-
   imageName: ghcr.io/cloudnative-pg/postgresql:17.6-standard-trixie
 
   postgresql:
