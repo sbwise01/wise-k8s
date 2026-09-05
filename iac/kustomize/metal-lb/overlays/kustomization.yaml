@@ -5,3 +5,10 @@ resources:
   - ../base
   - home-pool.yaml
   - home-pool-internal.yaml
+
+patches:
+  - target:
+      kind: DaemonSet
+      name: speaker
+      namespace: metallb-system
+    path: patches/speaker-ceph-toleration.yaml

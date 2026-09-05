@@ -1,0 +1,7 @@
+- op: add
+  path: /spec/template/spec/tolerations/-
+  value:
+    key: ceph-storage
+    operator: Equal
+    value: excluded
+    effect: NoSchedule
