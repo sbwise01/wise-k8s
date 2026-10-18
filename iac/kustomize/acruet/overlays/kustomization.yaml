@@ -7,4 +7,4 @@ images:
   - name: sbwise/acruet-user
     newTag: 3.0.0 # {"$imagepolicy": "flux-system:acruet-user:tag"}
   - name: sbwise/acruet-admin
-    newTag: 3.0.0 # {"$imagepolicy": "flux-system:acruet-admin:tag"}
+    newTag: 3.1.0 # {"$imagepolicy": "flux-system:acruet-admin:tag"}
