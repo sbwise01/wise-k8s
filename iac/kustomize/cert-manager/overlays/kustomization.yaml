@@ -9,5 +9,6 @@ patches:
       kind: Deployment
     path: patches/aws-region.yaml
   - target:
-      kind: ServiceAccount
-    path: patches/aws-role.yaml
+      kind: Deployment
+      name: cert-manager
+    path: patches/aws-credentials.yaml
